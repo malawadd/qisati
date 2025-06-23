@@ -1,0 +1,74 @@
+import { PrimaryButton } from '../components/atoms/PrimaryButton';
+import { Avatar } from '../components/atoms/Avatar';
+import { ChapterCard } from '../components/ChapterCard';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+
+export function Work() {
+  const work = useQuery(api.queries.seriesBySlug, { slug: "digital-nomad" });
+
+  if (!work) {
+    return (
+      <div className="min-h-screen grid-bg flex items-center justify-center">
+        <div className="neo bg-white p-8">
+          <div className="text-black font-bold">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen grid-bg">
+      <div className="relative h-96 overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-20"
+          style={{ backgroundImage: `url(${work.cover})` }}
+        />
+        <div className="relative z-10 h-full flex items-center justify-center px-8">
+          <div className="neo bg-white p-8 max-w-4xl w-full text-center">
+            <img 
+              src={work.cover} 
+              alt={work.title}
+              className="w-60 h-90 object-cover mx-auto mb-6 neo"
+            />
+            <h1 className="text-4xl font-bold text-black mb-4">{work.title}</h1>
+            <p className="text-lg text-black mb-6 font-medium">{work.logline}</p>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <Avatar src={work.author.avatar} alt={work.author.name} />
+              <div className="text-left">
+                <div className="font-bold text-black">{work.author.name}</div>
+                <div className="text-sm text-black">{work.author.bio}</div>
+              </div>
+            </div>
+            <PrimaryButton>Collect Series</PrimaryButton>
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-8 py-12">
+        <div className="neo bg-white p-8 mb-12">
+          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: work.synopsis.replace(/\n/g, '<br>') }} />
+        </div>
+
+        <h2 className="text-3xl font-bold text-black mb-8">Chapters</h2>
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
+          {work.chapters.map((chapter, index) => (
+            <ChapterCard 
+              key={chapter.id} 
+              index={index + 1}
+              {...chapter} 
+              onClick={() => window.location.href = `/work/digital-nomad/chap/${chapter.id}`}
+            />
+          ))}
+        </div>
+
+        <div className="neo bg-white p-8" style={{ minHeight: '240px' }}>
+          <h3 className="text-xl font-bold text-black mb-4">Comments</h3>
+          <div className="text-black font-medium">
+            Join the conversation about this series...
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
