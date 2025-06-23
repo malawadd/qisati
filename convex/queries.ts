@@ -72,6 +72,7 @@ export const exploreFeed = query({
       
       result.push({
         id: s._id,
+        slug: s.slug,
         title: s.title,
         author: {
           name: author?.handle || "Unknown",

@@ -6,7 +6,9 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 export function Work() {
-  const work = useQuery(api.queries.seriesBySlug, { slug: "digital-nomad" });
+  const path = window.location.pathname;
+  const slug = path.split('/')[2]; // Extract slug from /work/{slug}
+  const work = useQuery(api.queries.seriesBySlug, { slug });
 
   if (!work) {
     return (
@@ -70,7 +72,7 @@ export function Work() {
               key={chapter.id} 
               index={index + 1}
               {...chapter} 
-              onClick={() => window.location.href = `/work/digital-nomad/chap/${chapter.id}`}
+              onClick={() => window.location.href = `/work/${slug}/chap/${chapter.id}`}
             />
           ))}
         </div>

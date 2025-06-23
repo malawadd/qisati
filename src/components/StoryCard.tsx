@@ -3,6 +3,7 @@ import { ProgressBar } from './atoms/ProgressBar';
 
 interface StoryCardProps {
   id: string;
+  slug?: string;
   title: string;
   author: {
     name: string;
