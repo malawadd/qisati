@@ -57,7 +57,7 @@ export function NewChapterModal({ onClose, onChapterCreated }: NewChapterModalPr
             autoFocus
           />
           <div className="text-xs text-gray-500 mt-1">
-            You can always change this later
+            This will create a new series with your first chapter
           </div>
         </div>
 
@@ -69,7 +69,7 @@ export function NewChapterModal({ onClose, onChapterCreated }: NewChapterModalPr
           >
             {isCreating ? 'Creating...' : 'Start Writing'}
           </PrimaryButton>
-          <GhostButton onClick={onClose} disabled={isCreating}>
+          <GhostButton onClick={onClose}>
             Cancel
           </GhostButton>
         </div>
