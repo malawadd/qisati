@@ -1,11 +1,13 @@
-import { ExploreHeader } from '../components/ExploreHeader';
+import NavBar from '../components/NavBar';
 import { ExploreGrid } from '../components/ExploreGrid';
 
 export function Explore() {
   return (
-    <div className="min-h-screen grid-bg">
-      <ExploreHeader />
-      <ExploreGrid />
-    </div>
+    <>
+      <NavBar />
+      <div className="min-h-screen grid-bg">
+        <ExploreGrid />
+      </div>
+    </>
   );
 }

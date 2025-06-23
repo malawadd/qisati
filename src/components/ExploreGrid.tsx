@@ -15,8 +15,8 @@ export function ExploreGrid() {
   });
 
   return (
-    <>
-      <div className="neo bg-white mx-8 mt-4 p-6">
+    <div className="p-8">
+      <div className="neo bg-white p-6 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <input
             type="text"
@@ -43,7 +43,7 @@ export function ExploreGrid() {
         </div>
       </div>
 
-      <main className="p-8">
+      <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
           {stories?.map((story) => (
             <StoryCard 
@@ -62,7 +62,7 @@ export function ExploreGrid() {
             </div>
           </div>
         )}
-      </main>
-    </>
+      </div>
+    </div>
   );
 }

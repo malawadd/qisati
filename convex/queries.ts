@@ -145,68 +145,37 @@ export const chapterById = query({
       .order("desc")
       .take(10);
     
-    // TODO: Fetch actual content from IPFS using markdownCid
-    const mockContent = `# ${chapter.title}
-
-Maya stared at her laptop screen, the cursor blinking mockingly in the empty document. Three years of corporate life had drained her creativity, leaving her with nothing but spreadsheets and meeting notes.
-
-The notification sound broke her concentration. Another Slack message from her manager about the quarterly reports. She closed the laptop with more force than necessary.
-
-"That's it," she whispered to her empty apartment. "I'm done."
-
-## The Plan
-
-Within hours, Maya had outlined her escape:
-
-1. Quit her job (obviously)
-2. Sell everything she couldn't carry  
-3. Buy a one-way ticket to Bali
-4. Figure out the rest later
-
-It wasn't the most detailed plan, but it was hers. For the first time in years, she felt truly alive.`;
-    
     return {
       id: chapter._id,
       title: chapter.title,
-      content: mockContent,
+      content: chapter.bodyMd || "Draft not published yet.",
       price: `${chapter.priceEth} ETH`,
       supply: {
         current: chapter.remaining,
         total: chapter.supply
       },
       owned: false, // TODO: check user's NFT ownership
-      comments: comments.length
+      comments: comments.length,
+      series: chapter.series,
+      index: chapter.index
     };
   }
 });
 
-export const commentsForChapter = query({
-  args: { id: v.id("chapters"), page: v.optional(v.number()) },
+export const getChapterNavigation = query({
+  args: { seriesId: v.id("series"), currentIndex: v.number() },
   handler: async (ctx, args) => {
-    const page = args.page || 1;
-    const limit = 20;
-    const offset = (page - 1) * limit;
-    
-    const comments = await ctx.db
-      .query("comments")
-      .withIndex("by_chapter", (q) => q.eq("chapter", args.id))
-      .order("desc")
+    const chapters = await ctx.db
+      .query("chapters")
+      .withIndex("by_series", (q) => q.eq("series", args.seriesId))
+      .order("asc")
       .collect();
     
-    const result = [];
-    for (const comment of comments.slice(offset, offset + limit)) {
-      const author = await ctx.db.get(comment.author);
-      result.push({
-        id: comment._id,
-        body: comment.body,
-        author: {
-          name: author?.handle || "Anonymous",
-          avatar: author?.avatarUrl || ""
-        },
-        createdAt: comment.createdAt
-      });
-    }
+    const currentIdx = chapters.findIndex(ch => ch.index === args.currentIndex);
     
-    return result;
+    return {
+      previous: currentIdx > 0 ? chapters[currentIdx - 1] : null,
+      next: currentIdx < chapters.length - 1 ? chapters[currentIdx + 1] : null
+    };
   }
 });

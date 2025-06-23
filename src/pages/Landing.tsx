@@ -1,3 +1,4 @@
+import NavBar from '../components/NavBar';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
 import { GhostButton } from '../components/atoms/GhostButton';
 import { MetricTile } from '../components/atoms/MetricTile';
@@ -10,17 +11,9 @@ export function Landing() {
   const stories = useQuery(api.queries.exploreFeed, { page: 1 });
 
   return (
-    <div className="min-h-screen grid-bg">
-      <nav className="sticky top-0 z-50 bg-bg-grid h-22 flex items-center justify-between px-8 neo bg-white">
-        <div className="font-bold text-xl text-black">ReadOwn</div>
-        <div className="flex items-center gap-6">
-          <a href="/explore" className="font-medium text-black hover:text-primary">Explore</a>
-          <a href="#" className="font-medium text-black hover:text-primary">Docs</a>
-          <PrimaryButton onClick={() => window.location.href = '/explore'}>
-            Start writing
-          </PrimaryButton>
-        </div>
-      </nav>
+    <>
+      <NavBar />
+      <div className="min-h-screen grid-bg">
 
       <section className="min-h-screen flex items-center px-8">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
@@ -67,6 +60,7 @@ export function Landing() {
           ))}
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

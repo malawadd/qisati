@@ -43,6 +43,8 @@ const applicationTables = {
     remaining: v.number(),
     tokenId: v.number(),
     markdownCid: v.string(),
+    draftMd: v.optional(v.string()),   // live draft while editing
+    bodyMd: v.optional(v.string()),    // final Markdown after mint
   }).index("by_series", ["series"])
     .index("by_series_and_index", ["series", "index"]),
 

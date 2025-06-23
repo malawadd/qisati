@@ -29,6 +29,49 @@ export const addComment = mutation({
   }
 });
 
+export const saveDraftMd = mutation({
+  args: {
+    chapterId: v.id("chapters"),
+    md: v.string()
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Must be logged in to save draft");
+    }
+    
+    await ctx.db.patch(args.chapterId, {
+      draftMd: args.md
+    });
+    
+    return { success: true };
+  }
+});
+
+export const publishChapter = mutation({
+  args: { chapterId: v.id("chapters") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Must be logged in to publish");
+    }
+    
+    const chapter = await ctx.db.get(args.chapterId);
+    if (!chapter) {
+      throw new Error("Chapter not found");
+    }
+    
+    // Move draft content to published content
+    await ctx.db.patch(args.chapterId, {
+      bodyMd: chapter.draftMd || chapter.bodyMd,
+      draftMd: undefined,
+      status: "live"
+    });
+    
+    return { success: true };
+  }
+});
+
 export const recordPendingTx = mutation({
   args: {
     hash: v.string(),

@@ -1,3 +1,4 @@
+import NavBar from '../components/NavBar';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
 import { Avatar } from '../components/atoms/Avatar';
 import { ChapterCard } from '../components/ChapterCard';
@@ -9,23 +10,29 @@ export function Work() {
 
   if (!work) {
     return (
-      <div className="min-h-screen grid-bg flex items-center justify-center">
-        <div className="neo bg-white p-8">
-          <div className="text-black font-bold">Loading...</div>
+      <>
+        <NavBar />
+        <div className="min-h-screen grid-bg flex items-center justify-center">
+          <div className="neo bg-white p-8">
+            <div className="text-black font-bold">Loading...</div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen grid-bg">
-      <div className="relative h-96 overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-20"
-          style={{ backgroundImage: `url(${work.cover})` }}
-        />
-        <div className="relative z-10 h-full flex items-center justify-center px-8">
-          <div className="neo bg-white p-8 max-w-4xl w-full text-center">
+    <>
+      <NavBar />
+      <div className="min-h-screen grid-bg">
+    {/* Cover Section */}
+    <div className="relative min-h-[35vh] flex items-end justify-center">
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-20"
+        style={{ backgroundImage: `url(${work.cover})` }}
+      />
+        <div className="relative z-10 w-full flex justify-center pb-8">
+        <div className="neo bg-white p-8 max-w-4xl w-full text-center shadow-lg rounded-2xl">
             <img 
               src={work.cover} 
               alt={work.title}
@@ -45,7 +52,8 @@ export function Work() {
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-8 py-12">
+      {/* Main Section - overlaps the cover a bit */}
+    <main className="max-w-6xl mx-auto px-8 py-12 -mt-12">
         <div className="neo bg-white p-8 mb-12">
           <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: work.synopsis.replace(/\n/g, '<br>') }} />
         </div>
@@ -69,6 +77,7 @@ export function Work() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }

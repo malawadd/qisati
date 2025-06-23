@@ -7,6 +7,7 @@ import { Landing } from "./pages/Landing";
 import { Explore } from "./pages/Explore";
 import { Work } from "./pages/Work";
 import { Chapter } from "./pages/Chapter";
+import { Dashboard } from "./pages/Dashboard";
 
 export default function App() {
   const path = window.location.pathname;
@@ -15,6 +16,7 @@ export default function App() {
   const renderPage = () => {
     if (path === '/') return <Landing />;
     if (path === '/explore') return <Explore />;
+    if (path === '/dashboard') return <Dashboard />;
     if (path.startsWith('/work/') && path.includes('/chap/')) return <Chapter />;
     if (path.startsWith('/work/')) return <Work />;
     return <Landing />;
