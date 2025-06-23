@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import NavBar from '../components/NavBar';
@@ -12,29 +12,24 @@ export function Profile() {
   const path = window.location.pathname;
   const handle = path.slice(2); // Remove "/@" prefix
   
+  // All hooks must be called before any conditional returns
   const profile = useQuery(api.profiles.profileByHandle, { handle });
   const currentUser = useQuery(api.auth.loggedInUser);
+  const currentAppUser = useQuery(api.users.getCurrentAppUser);
   const isFollowing = useQuery(api.profiles.isFollowing, { targetHandle: handle });
   const followUser = useMutation(api.profiles.followUser);
   const uploadImage = useAction(api.profiles.uploadImage);
   const updateProfile = useMutation(api.profiles.updateProfile);
+  const createAppUser = useMutation(api.users.createAppUserIfNeeded);
 
-  if (!profile) {
-    return (
-      <>
-        <NavBar />
-        <div className="min-h-screen grid-bg flex items-center justify-center">
-          <div className="neo bg-white p-8">
-            <div className="text-black font-bold">
-              {profile === null ? 'Profile not found' : 'Loading...'}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
+  const isOwnProfile = currentUser?.name === profile?.handle || currentAppUser?.handle === profile?.handle;
 
-  const isOwnProfile = currentUser?.name === profile.handle;
+  // Auto-create app user if viewing own profile but no app user exists
+  useEffect(() => {
+    if (currentUser && !currentAppUser && isOwnProfile) {
+      createAppUser().catch(console.error);
+    }
+  }, [currentUser, currentAppUser, isOwnProfile, createAppUser]);
 
   const handleImageUpload = async (file: File, type: 'avatar' | 'banner') => {
     try {
@@ -62,6 +57,22 @@ export function Profile() {
       console.error('Failed to follow/unfollow:', error);
     }
   };
+
+  // Conditional return after all hooks
+  if (!profile) {
+    return (
+      <>
+        <NavBar />
+        <div className="min-h-screen grid-bg flex items-center justify-center">
+          <div className="neo bg-white p-8">
+            <div className="text-black font-bold">
+              {profile === null ? 'Profile not found' : 'Loading...'}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

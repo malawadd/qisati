@@ -45,8 +45,45 @@ export const profileByHandle = query({
   }
 });
 
+export const checkHandleAvailable = query({
+  args: { handle: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return { available: false, error: "Must be logged in" };
+    }
+
+    // Basic validation
+    if (!/^[a-zA-Z0-9_]+$/.test(args.handle)) {
+      return { available: false, error: "Only letters, numbers, and underscores allowed" };
+    }
+    if (args.handle.length < 3 || args.handle.length > 20) {
+      return { available: false, error: "Must be between 3 and 20 characters" };
+    }
+
+    // Get current user
+    const currentUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
+      .first();
+
+    const existingUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .first();
+
+    // Available if no one has it, or current user has it
+    const available = !existingUser || (currentUser && existingUser._id === currentUser._id);
+    return { 
+      available, 
+      error: available ? null : "Handle is already taken" 
+    };
+  }
+});
+
 export const updateProfile = mutation({
   args: {
+    handle: v.optional(v.string()),
     about: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     bannerUrl: v.optional(v.string()),
@@ -72,8 +109,29 @@ export const updateProfile = mutation({
       throw new Error("User not found");
     }
 
+    // Validate handle if provided
+    if (args.handle !== undefined) {
+      if (!/^[a-zA-Z0-9_]+$/.test(args.handle)) {
+        throw new Error("Handle can only contain letters, numbers, and underscores");
+      }
+      if (args.handle.length < 3 || args.handle.length > 20) {
+        throw new Error("Handle must be between 3 and 20 characters");
+      }
+
+      // Check if handle is already taken
+      const existingUser = await ctx.db
+        .query("appUsers")
+        .withIndex("by_handle", (q) => q.eq("handle", args.handle!))
+        .first();
+      
+      if (existingUser && existingUser._id !== appUser._id) {
+        throw new Error("Handle is already taken");
+      }
+    }
+
     // Update profile fields
     const updates: any = {};
+    if (args.handle !== undefined) updates.handle = args.handle;
     if (args.about !== undefined) updates.about = args.about;
     if (args.avatarUrl !== undefined) updates.avatarUrl = args.avatarUrl;
     if (args.bannerUrl !== undefined) updates.bannerUrl = args.bannerUrl;

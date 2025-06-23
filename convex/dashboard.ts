@@ -11,13 +11,14 @@ export const authorDashboard = query({
     }
 
     // Find user by auth ID
-    const appUser = await ctx.db
+    let appUser = await ctx.db
       .query("appUsers")
       .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
       .first();
     
+    // If no app user exists, return empty dashboard (will be created by mutation)
     if (!appUser) {
-      return { drafts: [], liveChapters: [], earnings: 0, user: null };
+      return { drafts: [], liveChapters: [], earnings: 0, user: null, needsAppUser: true };
     }
 
     // Get user's series

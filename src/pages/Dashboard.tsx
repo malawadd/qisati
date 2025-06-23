@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NavBar from '../components/NavBar';
 import { MetricTile } from '../components/atoms/MetricTile';
 import { GhostButton } from '../components/atoms/GhostButton';
@@ -12,6 +12,15 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'drafts' | 'live'>('drafts');
   const dashboard = useQuery(api.dashboard.authorDashboard);
   const withdraw = useMutation(api.dashboard.withdrawRewards);
+  const createAppUser = useMutation(api.users.createAppUserIfNeeded);
+  const currentAppUser = useQuery(api.users.getCurrentAppUser);
+
+  // Auto-create app user if needed
+  useEffect(() => {
+    if (currentAppUser === null) {
+      createAppUser().catch(console.error);
+    }
+  }, [currentAppUser, createAppUser]);
 
   const handleWithdraw = async () => {
     try {

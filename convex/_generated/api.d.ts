@@ -24,6 +24,7 @@ import type * as profiles from "../profiles.js";
 import type * as queries from "../queries.js";
 import type * as router from "../router.js";
 import type * as seed from "../seed.js";
+import type * as users from "../users.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   queries: typeof queries;
   router: typeof router;
   seed: typeof seed;
+  users: typeof users;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
