@@ -25,16 +25,42 @@ export const homeStats = query({
 });
 
 export const exploreFeed = query({
-  args: { page: v.optional(v.number()) },
+  args: { 
+    page: v.optional(v.number()),
+    category: v.optional(v.string()),
+    search: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     const page = args.page || 1;
     const limit = 12;
     const offset = (page - 1) * limit;
     
-    const series = await ctx.db.query("series").collect();
+    let allSeries;
+    
+    // Filter by category if specified
+    if (args.category && args.category !== "all") {
+      allSeries = await ctx.db
+        .query("series")
+        .withIndex("by_category", (q) => q.eq("category", args.category as any))
+        .collect();
+    } else {
+      allSeries = await ctx.db.query("series").collect();
+    }
+    
+    // Filter by search term if specified
+    let filteredSeries = allSeries;
+    if (args.search) {
+      const searchLower = args.search.toLowerCase();
+      filteredSeries = allSeries.filter(s => 
+        s.title.toLowerCase().includes(searchLower) ||
+        s.logline.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    const series = filteredSeries.slice(offset, offset + limit);
     const result = [];
     
-    for (const s of series.slice(offset, offset + limit)) {
+    for (const s of series) {
       const author = await ctx.db.get(s.author);
       const chapters = await ctx.db
         .query("chapters")

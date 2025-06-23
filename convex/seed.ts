@@ -28,7 +28,8 @@ export const seedDatabase = action({
       synopsisMd: "# About This Series\n\nThis is a groundbreaking exploration of modern work culture through the lens of speculative fiction. Follow Maya as she navigates the complexities of digital nomadism in a world where physical location becomes increasingly irrelevant.\n\n## What to Expect\n\n- Deep character development\n- Cutting-edge technology concepts\n- Real-world remote work insights\n- Thrilling plot twists",
       author: user1,
       contract: "0x1234567890123456789012345678901234567890",
-      tokenId: 1
+      tokenId: 1,
+      category: "sci-fi"
     });
 
     const series2 = await ctx.runMutation(internal.seed.createSeries, {
@@ -39,7 +40,8 @@ export const seedDatabase = action({
       synopsisMd: "# Neo Tokyo Nights\n\nIn the year 2087, Neo Tokyo pulses with digital life. Hackers, corporate spies, and AI entities navigate a world where reality and virtuality blur beyond recognition.\n\n## The Story\n\nFollow Akira as he uncovers a conspiracy that threatens the very fabric of digital society.",
       author: user2,
       contract: "0x2345678901234567890123456789012345678901",
-      tokenId: 1
+      tokenId: 1,
+      category: "thriller"
     });
 
     const series3 = await ctx.runMutation(internal.seed.createSeries, {
@@ -50,7 +52,8 @@ export const seedDatabase = action({
       synopsisMd: "# The Last Library\n\nBooks are extinct. Knowledge is controlled. But in the ruins of the old world, one library remains.\n\n## The Mission\n\nMaya Rodriguez guards humanity's last collection of physical books, fighting against a regime that seeks to control all information.",
       author: user1,
       contract: "0x3456789012345678901234567890123456789012",
-      tokenId: 1
+      tokenId: 1,
+      category: "fantasy"
     });
 
     // Create chapters for each series
@@ -108,7 +111,15 @@ export const createSeries = internalMutation({
     synopsisMd: v.string(),
     author: v.id("appUsers"),
     contract: v.string(),
-    tokenId: v.number()
+    tokenId: v.number(),
+    category: v.optional(v.union(
+      v.literal("sci-fi"),
+      v.literal("fantasy"), 
+      v.literal("thriller"),
+      v.literal("romance"),
+      v.literal("mystery"),
+      v.literal("literary")
+    ))
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("series", args);

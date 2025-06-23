@@ -20,8 +20,17 @@ const applicationTables = {
     author: v.id("appUsers"),
     contract: v.string(),
     tokenId: v.number(),
+    category: v.optional(v.union(
+      v.literal("sci-fi"),
+      v.literal("fantasy"), 
+      v.literal("thriller"),
+      v.literal("romance"),
+      v.literal("mystery"),
+      v.literal("literary")
+    )),
   }).index("by_slug", ["slug"])
-    .index("by_author", ["author"]),
+    .index("by_author", ["author"])
+    .index("by_category", ["category"]),
 
   chapters: defineTable({
     series: v.id("series"),
