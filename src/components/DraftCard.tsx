@@ -18,7 +18,12 @@ export function DraftCard({ _id, title, _creationTime, wordCount }: DraftCardPro
         Last edited: {lastEdited} • {wordCount.toLocaleString()} words
       </div>
       <div className="flex gap-2">
-        <GhostButton className="text-xs px-3 py-1">Edit</GhostButton>
+        <GhostButton 
+          className="text-xs px-3 py-1"
+          onClick={() => window.location.href = `/work/draft/edit/${_id}`}
+        >
+          Edit
+        </GhostButton>
         <GhostButton className="text-xs px-3 py-1">Mint</GhostButton>
       </div>
     </div>

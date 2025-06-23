@@ -5,11 +5,13 @@ import { GhostButton } from '../components/atoms/GhostButton';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
 import { DraftCard } from '../components/DraftCard';
 import { LiveChapterCard } from '../components/LiveChapterCard';
+import { NewChapterModal } from '../components/NewChapterModal';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'drafts' | 'live'>('drafts');
+  const [showNewChapterModal, setShowNewChapterModal] = useState(false);
   const dashboard = useQuery(api.dashboard.authorDashboard);
   const withdraw = useMutation(api.dashboard.withdrawRewards);
   const createAppUser = useMutation(api.users.createAppUserIfNeeded);
@@ -28,6 +30,10 @@ export function Dashboard() {
     } catch (error) {
       console.error('Withdrawal failed:', error);
     }
+  };
+
+  const handleChapterCreated = (chapterId: string) => {
+    window.location.href = `/work/draft/edit/${chapterId}`;
   };
 
   if (!dashboard) {
@@ -99,19 +105,24 @@ export function Dashboard() {
         )}
 
         {/* Tabs */}
-        <div className="mx-8 mt-4 flex gap-2">
-          <GhostButton 
-            onClick={() => setActiveTab('drafts')}
-            className={activeTab === 'drafts' ? 'bg-primary text-white' : ''}
-          >
-            Drafts ({dashboard.drafts.length})
-          </GhostButton>
-          <GhostButton 
-            onClick={() => setActiveTab('live')}
-            className={activeTab === 'live' ? 'bg-primary text-white' : ''}
-          >
-            Live ({dashboard.liveChapters.length})
-          </GhostButton>
+        <div className="mx-8 mt-4 flex justify-between items-center">
+          <div className="flex gap-2">
+            <GhostButton 
+              onClick={() => setActiveTab('drafts')}
+              className={activeTab === 'drafts' ? 'bg-primary text-white' : ''}
+            >
+              Drafts ({dashboard.drafts.length})
+            </GhostButton>
+            <GhostButton 
+              onClick={() => setActiveTab('live')}
+              className={activeTab === 'live' ? 'bg-primary text-white' : ''}
+            >
+              Live ({dashboard.liveChapters.length})
+            </GhostButton>
+          </div>
+          <PrimaryButton onClick={() => setShowNewChapterModal(true)}>
+            + New Chapter
+          </PrimaryButton>
         </div>
 
         {/* Content */}
@@ -140,6 +151,13 @@ export function Dashboard() {
           </div>
         </main>
       </div>
+
+      {showNewChapterModal && (
+        <NewChapterModal
+          onClose={() => setShowNewChapterModal(false)}
+          onChapterCreated={handleChapterCreated}
+        />
+      )}
     </>
   );
 }

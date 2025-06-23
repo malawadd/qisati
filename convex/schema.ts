@@ -64,6 +64,12 @@ const applicationTables = {
   }).index("by_series", ["series"])
     .index("by_series_and_index", ["series", "index"]),
 
+  drafts: defineTable({
+    chapter: v.id("chapters"),        // FK
+    bodyMd: v.string(),              // latest markdown
+    updated: v.number(),             // ms epoch
+  }).index("by_chapter", ["chapter"]),
+
   comments: defineTable({
     chapter: v.id("chapters"),
     author: v.id("appUsers"),

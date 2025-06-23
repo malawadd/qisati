@@ -30,9 +30,9 @@ export const addComment = mutation({
 });
 
 export const saveDraftMd = mutation({
-  args: {
-    chapterId: v.id("chapters"),
-    md: v.string()
+  args: { 
+    chapter: v.id("chapters"), 
+    md: v.string() 
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -40,9 +40,24 @@ export const saveDraftMd = mutation({
       throw new Error("Must be logged in to save draft");
     }
     
-    await ctx.db.patch(args.chapterId, {
-      draftMd: args.md
-    });
+    // Try to update existing draft first
+    const existingDraft = await ctx.db
+      .query("drafts")
+      .withIndex("by_chapter", (q) => q.eq("chapter", args.chapter))
+      .first();
+    
+    if (existingDraft) {
+      await ctx.db.patch(existingDraft._id, {
+        bodyMd: args.md,
+        updated: Date.now()
+      });
+    } else {
+      await ctx.db.insert("drafts", {
+        chapter: args.chapter,
+        bodyMd: args.md,
+        updated: Date.now()
+      });
+    }
     
     return { success: true };
   }
@@ -170,5 +185,26 @@ export const collectChapter = mutation({
     }
     
     return { txHash: mockTxHash };
+  }
+});
+
+export const updateChapterAfterMint = mutation({
+  args: {
+    chapterId: v.id("chapters"),
+    tokenId: v.number(),
+    priceEth: v.number(),
+    supply: v.number(),
+    remaining: v.number(),
+    status: v.union(v.literal("draft"), v.literal("live"), v.literal("coming"))
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.chapterId, {
+      tokenId: args.tokenId,
+      priceEth: args.priceEth,
+      supply: args.supply,
+      remaining: args.remaining,
+      status: args.status
+    });
+    return { success: true };
   }
 });

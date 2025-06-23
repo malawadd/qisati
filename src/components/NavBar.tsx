@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PrimaryButton } from './atoms/PrimaryButton';
 import { Avatar } from './atoms/Avatar';
+import { NewChapterModal } from './NewChapterModal';
 import { useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../convex/_generated/api';
@@ -8,6 +9,7 @@ import { api } from '../../convex/_generated/api';
 export default function NavBar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNewChapterModal, setShowNewChapterModal] = useState(false);
   const user = useQuery(api.auth.loggedInUser);
   const appUser = useQuery(api.users.getCurrentAppUser);
   const { signOut } = useAuthActions();
@@ -31,7 +33,16 @@ export default function NavBar() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showUserMenu]);
 
+  const handleStartWriting = () => {
+    setShowNewChapterModal(true);
+  };
+
+  const handleChapterCreated = (chapterId: string) => {
+    window.location.href = `/work/draft/edit/${chapterId}`;
+  };
+
   return (
+    <>
     <nav 
       className={`sticky top-0 z-50 neo bg-white mx-8 mt-8 transition-all duration-200 ${
         isScrolled ? 'h-16' : 'h-22'
@@ -134,12 +145,20 @@ export default function NavBar() {
               </div>
             </>
           ) : (
-            <PrimaryButton onClick={() => window.location.href = '/explore'}>
+            <PrimaryButton onClick={handleStartWriting}>
               Start writing
             </PrimaryButton>
           )}
         </div>
       </div>
     </nav>
+
+    {showNewChapterModal && (
+      <NewChapterModal
+        onClose={() => setShowNewChapterModal(false)}
+        onChapterCreated={handleChapterCreated}
+      />
+    )}
+  </>
   );
 }

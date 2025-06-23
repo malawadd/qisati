@@ -146,8 +146,7 @@ export const chapterById = query({
       .take(10);
     
     return {
-      id: chapter._id,
-      title: chapter.title,
+      ...chapter,
       content: chapter.bodyMd || "Draft not published yet.",
       price: `${chapter.priceEth} ETH`,
       supply: {
@@ -155,9 +154,7 @@ export const chapterById = query({
         total: chapter.supply
       },
       owned: false, // TODO: check user's NFT ownership
-      comments: comments.length,
-      series: chapter.series,
-      index: chapter.index
+      comments: comments.length
     };
   }
 });
@@ -185,5 +182,22 @@ export const getChapterNavigation = query({
         index: chapters[currentIdx + 1].index
       } : null
     };
+  }
+});
+
+export const draftByChapter = query({
+  args: { chapterId: v.id("chapters") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("drafts")
+      .withIndex("by_chapter", (q) => q.eq("chapter", args.chapterId))
+      .first();
+  }
+});
+
+export const seriesById = query({
+  args: { id: v.id("series") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
   }
 });

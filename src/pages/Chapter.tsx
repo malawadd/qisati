@@ -35,7 +35,7 @@ export function Chapter() {
   const handleCollect = async () => {
     if (chapter) {
       try {
-        await collectChapter({ chapterId: chapter.id });
+        await collectChapter({ chapterId: chapter._id });
       } catch (error) {
         console.error("Failed to collect chapter:", error);
       }

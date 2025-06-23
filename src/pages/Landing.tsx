@@ -1,14 +1,30 @@
+import { useState } from 'react';
 import NavBar from '../components/NavBar';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
 import { GhostButton } from '../components/atoms/GhostButton';
 import { MetricTile } from '../components/atoms/MetricTile';
 import { StoryCard } from '../components/StoryCard';
+import { NewChapterModal } from '../components/NewChapterModal';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 export function Landing() {
+  const [showNewChapterModal, setShowNewChapterModal] = useState(false);
   const stats = useQuery(api.queries.homeStats);
   const stories = useQuery(api.queries.exploreFeed, { page: 1 });
+  const user = useQuery(api.auth.loggedInUser);
+
+  const handleStartWriting = () => {
+    if (user) {
+      setShowNewChapterModal(true);
+    } else {
+      window.location.href = '/explore';
+    }
+  };
+
+  const handleChapterCreated = (chapterId: string) => {
+    window.location.href = `/work/draft/edit/${chapterId}`;
+  };
 
   return (
     <>
@@ -25,8 +41,12 @@ export function Landing() {
               Discover exclusive stories, collect limited editions, and support your favorite authors directly.
             </p>
             <div className="flex gap-4">
-              <PrimaryButton>Start writing</PrimaryButton>
-              <GhostButton>Explore</GhostButton>
+              <PrimaryButton onClick={handleStartWriting}>
+                Start writing
+              </PrimaryButton>
+              <GhostButton onClick={() => window.location.href = '/explore'}>
+                Explore
+              </GhostButton>
             </div>
           </div>
           <div className="neo bg-primary h-96 flex items-center justify-center">
@@ -61,6 +81,13 @@ export function Landing() {
         </div>
       </section>
       </div>
+
+      {showNewChapterModal && (
+        <NewChapterModal
+          onClose={() => setShowNewChapterModal(false)}
+          onChapterCreated={handleChapterCreated}
+        />
+      )}
     </>
   );
 }
