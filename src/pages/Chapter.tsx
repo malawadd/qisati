@@ -5,15 +5,12 @@ import { api } from '../../convex/_generated/api';
 
 export function Chapter() {
   const path = window.location.pathname;
-  const chapterId = path.split('/').pop();
-  
-  // For demo, we'll use the first chapter from our seed data
-  // In real app, you'd parse the chapterId from URL
-  const work = useQuery(api.queries.seriesBySlug, { slug: "digital-nomad" });
-  const firstChapter = work?.chapters?.[0];
+  const pathParts = path.split('/');
+  const chapterId = pathParts[pathParts.length - 1];
+  const seriesSlug = pathParts[2]; // /work/{slug}/chap/{id}
   
   const chapter = useQuery(api.queries.chapterById, 
-    firstChapter ? { id: firstChapter.id as any } : "skip"
+    chapterId ? { id: chapterId as any } : "skip"
   );
   
   const navigation = useQuery(api.queries.getChapterNavigation,
@@ -36,12 +33,24 @@ export function Chapter() {
   }
 
   const handleCollect = async () => {
-    if (firstChapter) {
+    if (chapter) {
       try {
-        await collectChapter({ chapterId: firstChapter.id as any });
+        await collectChapter({ chapterId: chapter.id });
       } catch (error) {
         console.error("Failed to collect chapter:", error);
       }
+    }
+  };
+
+  const handlePrevious = () => {
+    if (navigation?.previous) {
+      window.location.href = `/work/${seriesSlug}/chap/${navigation.previous._id}`;
+    }
+  };
+
+  const handleNext = () => {
+    if (navigation?.next) {
+      window.location.href = `/work/${seriesSlug}/chap/${navigation.next._id}`;
     }
   };
 
@@ -97,20 +106,22 @@ export function Chapter() {
 
           <div className="flex justify-between items-center mt-12">
             <button 
+              onClick={handlePrevious}
               className={`neo bg-white px-6 py-3 font-bold text-black hover:scale-105 transition-transform ${
                 !navigation?.previous ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               disabled={!navigation?.previous}
             >
-              ← Previous
+              ← {navigation?.previous ? navigation.previous.title : 'Previous'}
             </button>
             <button 
+              onClick={handleNext}
               className={`neo bg-white px-6 py-3 font-bold text-black hover:scale-105 transition-transform ${
                 !navigation?.next ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               disabled={!navigation?.next}
             >
-              Next →
+              {navigation?.next ? navigation.next.title : 'Next'} →
             </button>
           </div>
         </div>

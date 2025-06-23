@@ -174,8 +174,16 @@ export const getChapterNavigation = query({
     const currentIdx = chapters.findIndex(ch => ch.index === args.currentIndex);
     
     return {
-      previous: currentIdx > 0 ? chapters[currentIdx - 1] : null,
-      next: currentIdx < chapters.length - 1 ? chapters[currentIdx + 1] : null
+      previous: currentIdx > 0 ? {
+        _id: chapters[currentIdx - 1]._id,
+        title: chapters[currentIdx - 1].title,
+        index: chapters[currentIdx - 1].index
+      } : null,
+      next: currentIdx < chapters.length - 1 ? {
+        _id: chapters[currentIdx + 1]._id,
+        title: chapters[currentIdx + 1].title,
+        index: chapters[currentIdx + 1].index
+      } : null
     };
   }
 });
