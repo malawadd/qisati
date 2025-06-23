@@ -14,10 +14,13 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
   const series = useQuery(api.queries.seriesById, { id: seriesId });
   const chapters = useQuery(api.queries.chaptersForSeries, { seriesId });
   const updateTitle = useMutation(api.seriesMutations.updateSeriesTitle);
+  const updateChapterTitle = useMutation(api.seriesMutations.updateChapterTitle);
   const createChapter = useMutation(api.seriesMutations.createDraftChapter);
   
   const [titleInput, setTitleInput] = useState(series?.title || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [editingChapter, setEditingChapter] = useState<Id<"chapters"> | null>(null);
+  const [chapterTitleInput, setChapterTitleInput] = useState('');
 
   // Update local state when series data loads
   useState(() => {
@@ -51,6 +54,32 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
       console.error('Failed to create chapter:', error);
       alert('Failed to create new chapter. Please try again.');
     }
+  };
+
+  const handleChapterTitleEdit = (chapter: any) => {
+    setEditingChapter(chapter._id);
+    setChapterTitleInput(chapter.title || '');
+  };
+
+  const handleChapterTitleSave = async () => {
+    if (!editingChapter || !chapterTitleInput.trim()) return;
+    
+    try {
+      await updateChapterTitle({ 
+        chapterId: editingChapter, 
+        title: chapterTitleInput.trim() 
+      });
+      setEditingChapter(null);
+      setChapterTitleInput('');
+    } catch (error) {
+      console.error('Failed to update chapter title:', error);
+      alert('Failed to update chapter title. Please try again.');
+    }
+  };
+
+  const handleChapterTitleCancel = () => {
+    setEditingChapter(null);
+    setChapterTitleInput('');
   };
 
   if (!series || !chapters) {
@@ -91,24 +120,18 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
         <div className="text-xs font-bold text-black mb-2">CHAPTERS</div>
         <div className="space-y-1">
           {chapters.map((chapter) => (
-            <button
+            <ChapterRow
               key={chapter._id}
-              onClick={() => onChapterSelect(chapter._id)}
-              className={`neo w-full text-left px-3 py-2 text-sm font-medium transition-colors ${
-                chapter._id === currentChapterId
-                  ? 'bg-[#A589E8] text-white'
-                  : 'bg-white text-black hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span>
-                  {chapter.index}. {chapter.title || 'Untitled'}
-                </span>
-                {chapter.status === 'live' && (
-                  <span className="text-xs">✔︎</span>
-                )}
-              </div>
-            </button>
+              chapter={chapter}
+              isActive={chapter._id === currentChapterId}
+              isEditing={editingChapter === chapter._id}
+              titleInput={chapterTitleInput}
+              onTitleInputChange={setChapterTitleInput}
+              onSelect={() => onChapterSelect(chapter._id)}
+              onEdit={() => handleChapterTitleEdit(chapter)}
+              onSave={handleChapterTitleSave}
+              onCancel={handleChapterTitleCancel}
+            />
           ))}
         </div>
       </div>
@@ -120,6 +143,82 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
       >
         + Add Chapter
       </PrimaryButton>
+    </div>
+  );
+}
+
+interface ChapterRowProps {
+  chapter: any;
+  isActive: boolean;
+  isEditing: boolean;
+  titleInput: string;
+  onTitleInputChange: (value: string) => void;
+  onSelect: () => void;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+function ChapterRow({ 
+  chapter, 
+  isActive, 
+  isEditing, 
+  titleInput, 
+  onTitleInputChange, 
+  onSelect, 
+  onEdit, 
+  onSave, 
+  onCancel 
+}: ChapterRowProps) {
+  return (
+    <div
+      className={`neo w-full px-3 py-2 text-sm font-medium transition-colors ${
+        isActive
+          ? 'bg-[#A589E8] text-white'
+          : 'bg-white text-black hover:bg-gray-100'
+      }`}
+    >
+      {isEditing ? (
+        <div className="flex items-center gap-2">
+          <span className="text-xs">{chapter.index}.</span>
+          <input
+            type="text"
+            value={titleInput}
+            onChange={(e) => onTitleInputChange(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') onSave();
+              if (e.key === 'Escape') onCancel();
+            }}
+            onBlur={onSave}
+            className="flex-1 bg-transparent border-b border-current text-xs focus:outline-none"
+            autoFocus
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onSelect}
+            className="flex-1 text-left"
+          >
+            {chapter.index}. {chapter.title || 'Untitled'}
+          </button>
+          <div className="flex items-center gap-1">
+            {chapter.status === 'live' && (
+              <span className="text-xs">✔︎</span>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="text-xs opacity-50 hover:opacity-100"
+              title="Edit title"
+            >
+              ✏
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

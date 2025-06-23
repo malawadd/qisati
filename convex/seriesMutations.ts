@@ -61,3 +61,16 @@ export const createDraftChapter = mutation({
     return chapterId;
   }
 });
+
+export const updateChapterTitle = mutation({
+  args: { chapterId: v.id("chapters"), title: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Must be logged in to update chapter");
+    }
+
+    await ctx.db.patch(args.chapterId, { title: args.title });
+    return { success: true };
+  }
+});
