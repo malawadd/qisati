@@ -28,10 +28,12 @@ import { createLowlight } from 'lowlight';
 const lowlight = createLowlight();
 import { useMutation, useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 import NavBar from '../components/NavBar';
 import EditorToolbar from '../components/editor/EditorToolbar';
 import SlashMenu from '../components/editor/SlashMenu';
 import WordCountHUD from '../components/editor/WordCountHUD';
+import NavigatorPane from '../components/editor/NavigatorPane';
 import MintSidebar from '../components/MintSidebar';
 
 export default function Editor() {
@@ -42,6 +44,7 @@ export default function Editor() {
   
   const chapter = useQuery(api.queries.chapterById, { id: id as any });
   const draft = useQuery(api.queries.draftByChapter, { chapterId: id as any });
+  const series = useQuery(api.queries.seriesById, chapter ? { id: chapter.series } : "skip");
   const saveDraft = useMutation(api.mutations.saveDraftMd);
   const uploadImage = useAction(api.uploadImage.uploadImage);
 
@@ -66,7 +69,7 @@ export default function Editor() {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        history: false, // We'll use the History extension instead
+        history: false,
       }),
       History,
       CharacterCount,
@@ -153,7 +156,6 @@ export default function Editor() {
     const backupDraft = () => {
       if (editor) {
         const content = editor.getHTML();
-        // TODO: Implement encrypted backup to external storage
         console.log('Backup draft (stub)', content.length, 'chars');
       }
     };
@@ -177,7 +179,13 @@ export default function Editor() {
     }
   };
 
-  if (!chapter) {
+  const handleChapterSelect = (chapterId: Id<"chapters">) => {
+    if (series) {
+      window.location.href = `/work/${series.slug}/edit/${chapterId}`;
+    }
+  };
+
+  if (!chapter || !series) {
     return (
       <>
         <NavBar />
@@ -194,6 +202,14 @@ export default function Editor() {
     <>
       <NavBar />
       <div className="grid-bg min-h-screen flex">
+        {/* Navigator Pane */}
+        <NavigatorPane
+          seriesId={series._id}
+          currentChapterId={chapter._id}
+          onChapterSelect={handleChapterSelect}
+        />
+        
+        {/* Editor Panel */}
         <div className="flex-1 p-8">
           <div className="neo bg-white h-full flex flex-col">
             {/* Header */}
@@ -204,7 +220,7 @@ export default function Editor() {
                     onClick={() => window.location.href = '/dashboard'}
                     className="neo bg-gray-100 px-3 py-1 text-sm font-bold text-black hover:bg-gray-200 transition-colors"
                   >
-                    ← Back to Dashboard
+                    ← Dashboard
                   </button>
                   <h1 className="text-xl font-bold text-black">{chapter.title}</h1>
                 </div>
@@ -234,6 +250,7 @@ export default function Editor() {
           </div>
         </div>
         
+        {/* Mint Sidebar */}
         <MintSidebar chapterId={id} editor={editor} />
         <WordCountHUD editor={editor} />
       </div>

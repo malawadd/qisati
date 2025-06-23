@@ -26,6 +26,7 @@ import type * as profiles from "../profiles.js";
 import type * as queries from "../queries.js";
 import type * as router from "../router.js";
 import type * as seed from "../seed.js";
+import type * as seriesMutations from "../seriesMutations.js";
 import type * as uploadImage from "../uploadImage.js";
 import type * as users from "../users.js";
 
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   queries: typeof queries;
   router: typeof router;
   seed: typeof seed;
+  seriesMutations: typeof seriesMutations;
   uploadImage: typeof uploadImage;
   users: typeof users;
 }>;

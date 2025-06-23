@@ -201,3 +201,14 @@ export const seriesById = query({
     return await ctx.db.get(args.id);
   }
 });
+
+export const chaptersForSeries = query({
+  args: { seriesId: v.id("series") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("chapters")
+      .withIndex("by_series", (q) => q.eq("series", args.seriesId))
+      .order("asc")
+      .collect();
+  }
+});
