@@ -6,10 +6,26 @@ const applicationTables = {
   appUsers: defineTable({
     handle: v.string(),
     avatarUrl: v.string(),
+    bannerUrl: v.optional(v.string()),
     about: v.optional(v.string()),
     authUserId: v.optional(v.id("users")), // Link to auth user
   }).index("by_handle", ["handle"])
     .index("by_auth_user", ["authUserId"]),
+
+  userSocials: defineTable({
+    userId: v.id("appUsers"),
+    platform: v.string(), // "twitter", "instagram", "website", etc.
+    url: v.string(),
+    displayText: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+
+  follows: defineTable({
+    followerId: v.id("appUsers"),
+    followingId: v.id("appUsers"),
+    createdAt: v.number(),
+  }).index("by_follower", ["followerId"])
+    .index("by_following", ["followingId"])
+    .index("by_follower_following", ["followerId", "followingId"]),
 
   series: defineTable({
     slug: v.string(),

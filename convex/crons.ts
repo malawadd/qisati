@@ -46,8 +46,8 @@ export const getSeriesById = internalQuery({
 
 const crons = cronJobs();
 
-// Sync token data every 60 seconds
-crons.interval("sync active tokens", { seconds: 60 }, internal.crons.syncActiveTokens, {});
+// Sync token data every 60 seconds - DISABLED for now
+// crons.interval("sync active tokens", { seconds: 6000 }, internal.crons.syncActiveTokens, {});
 
 export default crons;
 

@@ -43,7 +43,12 @@ export function Work() {
             <div className="flex items-center justify-center gap-4 mb-6">
               <Avatar src={work.author.avatar} alt={work.author.name} />
               <div className="text-left">
-                <div className="font-bold text-black">{work.author.name}</div>
+                <a 
+                  href={`/@${work.author.name}`}
+                  className="font-bold text-black hover:text-primary transition-colors cursor-pointer"
+                >
+                  {work.author.name}
+                </a>
                 <div className="text-sm text-black">{work.author.bio}</div>
               </div>
             </div>

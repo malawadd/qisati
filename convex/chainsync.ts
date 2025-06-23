@@ -30,7 +30,8 @@ export const upsertTokenFromChain = internalAction({
     
     // For now, simulate supply changes
     const remaining = Math.floor(Math.random() * 380) + 100;
-    const priceEth = 0.002 + (Math.random() * 0.008);
+    // Keep price stable - don't randomly change it
+    const priceEth = 0.002;
     
     console.log(`Syncing token ${args.contract}:${args.tokenId} - remaining: ${remaining}, price: ${priceEth}`);
     
@@ -43,8 +44,8 @@ export const upsertTokenFromChain = internalAction({
     if (chapters.length > 0) {
       await ctx.runMutation(internal.mutations.updateChapterSupply, {
         chapterId: chapters[0]._id,
-        remaining,
-        priceEth
+        remaining
+        // Don't update price - keep it stable
       });
     }
     

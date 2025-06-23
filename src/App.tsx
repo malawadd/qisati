@@ -8,6 +8,7 @@ import { Explore } from "./pages/Explore";
 import { Work } from "./pages/Work";
 import { Chapter } from "./pages/Chapter";
 import { Dashboard } from "./pages/Dashboard";
+import { Profile } from "./pages/Profile";
 
 export default function App() {
   const path = window.location.pathname;
@@ -19,6 +20,7 @@ export default function App() {
     if (path === '/dashboard') return <Dashboard />;
     if (path.startsWith('/work/') && path.includes('/chap/')) return <Chapter />;
     if (path.startsWith('/work/')) return <Work />;
+    if (path.startsWith('/@')) return <Profile />;
     return <Landing />;
   };
 

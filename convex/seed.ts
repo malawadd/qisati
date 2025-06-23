@@ -10,13 +10,37 @@ export const seedDatabase = action({
     const user1 = await ctx.runMutation(internal.seed.createUser, {
       handle: "sarah_chen",
       avatarUrl: "https://picsum.photos/100/100?random=1",
-      about: "Tech journalist turned fiction writer, exploring the intersection of technology and human connection."
+      bannerUrl: "https://picsum.photos/800/300?random=1",
+      about: "Tech journalist turned fiction writer, exploring the intersection of technology and human connection.\n\nI believe stories have the power to shape our understanding of the digital world."
     });
 
     const user2 = await ctx.runMutation(internal.seed.createUser, {
       handle: "kenji_nakamura", 
       avatarUrl: "https://picsum.photos/100/100?random=2",
-      about: "Cyberpunk author from Neo Tokyo, writing the future one line of code at a time."
+      bannerUrl: "https://picsum.photos/800/300?random=2",
+      about: "Cyberpunk author from Neo Tokyo, writing the future one line of code at a time.\n\nSpecializing in near-future sci-fi and digital dystopias."
+    });
+
+    // Add social links for users
+    await ctx.runMutation(internal.seed.createUserSocial, {
+      userId: user1,
+      platform: "Twitter",
+      url: "https://twitter.com/sarah_chen",
+      displayText: "@sarah_chen"
+    });
+
+    await ctx.runMutation(internal.seed.createUserSocial, {
+      userId: user1,
+      platform: "Website",
+      url: "https://sarahchen.dev",
+      displayText: "sarahchen.dev"
+    });
+
+    await ctx.runMutation(internal.seed.createUserSocial, {
+      userId: user2,
+      platform: "Instagram",
+      url: "https://instagram.com/kenji_writes",
+      displayText: "@kenji_writes"
     });
 
     // Create series
@@ -172,9 +196,26 @@ Maya's hand trembled as she reached for her phone to record, but a floorboard cr
 });
 
 export const createUser = internalMutation({
-  args: { handle: v.string(), avatarUrl: v.string(), about: v.optional(v.string()) },
+  args: { 
+    handle: v.string(), 
+    avatarUrl: v.string(), 
+    bannerUrl: v.optional(v.string()),
+    about: v.optional(v.string()) 
+  },
   handler: async (ctx, args) => {
     return await ctx.db.insert("appUsers", args);
+  }
+});
+
+export const createUserSocial = internalMutation({
+  args: {
+    userId: v.id("appUsers"),
+    platform: v.string(),
+    url: v.string(),
+    displayText: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("userSocials", args);
   }
 });
 

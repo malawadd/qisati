@@ -5,10 +5,19 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 export const authorDashboard = query({
   args: {},
   handler: async (ctx) => {
-    // TODO: Get actual user ID from auth
-    const appUser = await ctx.db.query("appUsers").first();
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return { drafts: [], liveChapters: [], earnings: 0, user: null };
+    }
+
+    // Find user by auth ID
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
+      .first();
+    
     if (!appUser) {
-      return { drafts: [], liveChapters: [], earnings: 0 };
+      return { drafts: [], liveChapters: [], earnings: 0, user: null };
     }
 
     // Get user's series
@@ -33,7 +42,7 @@ export const authorDashboard = query({
       sum + (ch.priceEth * (ch.supply - ch.remaining)), 0
     );
 
-    return { drafts, liveChapters, earnings };
+    return { drafts, liveChapters, earnings, user: appUser };
   }
 });
 
