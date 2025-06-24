@@ -5,6 +5,7 @@ import CoverUploadButton from './CoverUploadButton';
 import LoglineInput from './LoglineInput';
 import { Id } from '../../../convex/_generated/dataModel';
 import CategorySelector from './CategorySelector';
+import LaunchCoinButton from './LaunchCoinButton';
 
 interface SeriesSettingsPaneProps {
   series: Doc<"series">;
@@ -75,6 +76,12 @@ export default function SeriesSettingsPane({ series, chapters, sessionId }: Seri
             sessionId={sessionId}
           />
         </div>
+
+        {series.contract === "0x0000000000000000000000000000000000000000" && (
+          <div className="mt-6">
+            <LaunchCoinButton series={series} sessionId={sessionId} />
+          </div>
+        )}
       </div>
 
       {/* Preview Card */}

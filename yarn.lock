@@ -798,6 +798,11 @@
   resolved "https://registry.yarnpkg.com/@graphql-typed-document-node/core/-/core-3.2.0.tgz#5f3d96ec6b2354ad6d8a28bf216a1d97b5426861"
   integrity sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==
 
+"@hey-api/client-fetch@^0.8.3":
+  version "0.8.4"
+  resolved "https://registry.yarnpkg.com/@hey-api/client-fetch/-/client-fetch-0.8.4.tgz#2dc2d368b4dd2137789f46adcae68ccd04ea2adb"
+  integrity sha512-SWtUjVEFIUdiJGR2NiuF0njsSrSdTe7WHWkp3BLH3DEl2bRhiflOnBo29NSDdrY90hjtTQiTQkBxUgGOF29Xzg==
+
 "@humanfs/core@^0.19.1":
   version "0.19.1"
   resolved "https://registry.yarnpkg.com/@humanfs/core/-/core-0.19.1.tgz#17c55ca7d426733fe3c561906b8173c336b40a77"
@@ -3102,6 +3107,19 @@
   dependencies:
     "@walletconnect/window-getters" "^1.0.1"
     tslib "1.14.1"
+
+"@zoralabs/coins-sdk@^0.2.4":
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/@zoralabs/coins-sdk/-/coins-sdk-0.2.4.tgz#02ded19840a798499df03b69cd3f6eaf90f4abcf"
+  integrity sha512-CAyC3CG8L6ckx2BtacziyKeg2/96qje32aH7u94UdUAiigXe8ovmwvKxud5KSfdozv1u2TH4OLvXbm5zd8GQJg==
+  dependencies:
+    "@hey-api/client-fetch" "^0.8.3"
+    "@zoralabs/protocol-deployments" "^0.6.1"
+
+"@zoralabs/protocol-deployments@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@zoralabs/protocol-deployments/-/protocol-deployments-0.6.1.tgz#99b193cbd759d6bb8e2cebf1282e8dff66687aa5"
+  integrity sha512-iDO5EhLrqDw0keudRq9omuSdvHG852de5/apY2p7QLBDxitQuJ/6/jOaq2WB4B6GPVUh2fTd5+CdoSsbJhJv5g==
 
 abitype@1.0.8, abitype@^1.0.6, abitype@^1.0.8:
   version "1.0.8"

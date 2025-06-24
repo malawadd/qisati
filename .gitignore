@@ -28,3 +28,4 @@ package-lock.json
 /.cursor
 /.github
 src/src.xml
+src/components/editor/LaunchCoinButton copy.tsx
