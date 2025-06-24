@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { useState, useEffect } from 'react';
 import { useMutation, useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -7,6 +8,7 @@ import { GhostButton } from './atoms/GhostButton';
 interface EditProfileModalProps {
   user: any;
   onClose: () => void;
+  sessionId: string;
 }
 
 interface Social {
@@ -15,7 +17,8 @@ interface Social {
   displayText?: string;
 }
 
-export function EditProfileModal({ user, onClose }: EditProfileModalProps) {
+export function EditProfileModal({ user, onClose, sessionId }: EditProfileModalProps) {
+
   const [handle, setHandle] = useState(user.handle || '');
   const [about, setAbout] = useState(user.about || '');
   const [socials, setSocials] = useState<Social[]>(
@@ -28,7 +31,7 @@ export function EditProfileModal({ user, onClose }: EditProfileModalProps) {
   const uploadImage = useAction(api.profiles.uploadImage);
   const checkHandle = useQuery(
     api.profiles.checkHandleAvailable, 
-    handle && handle !== user.handle ? { handle } : "skip"
+    handle && handle !== user.handle ? { sessionId, handle } : "skip"
   );
 
   // Check handle availability when it changes
@@ -73,7 +76,7 @@ export function EditProfileModal({ user, onClose }: EditProfileModalProps) {
       }
 
       const validSocials = socials.filter(s => s.platform && s.url);
-      const updates: any = { about, socials: validSocials };
+      const updates: any = { sessionId, about, socials: validSocials };
       
       // Only include handle if it changed
       if (handle !== user.handle) {

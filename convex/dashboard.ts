@@ -1,21 +1,21 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const authorDashboard = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+  args: { sessionId: v.id("walletSessions") },
+  handler: async (ctx, args) => {
+    // Get wallet session and user
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       return { drafts: [], liveChapters: [], earnings: 0, user: null };
     }
 
-    // Find user by auth ID
-    let appUser = await ctx.db
+    // Find user by wallet address
+    const appUser = await ctx.db
       .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
       .first();
-    
+
     // If no app user exists, return empty dashboard (will be created by mutation)
     if (!appUser) {
       return { drafts: [], liveChapters: [], earnings: 0, user: null, needsAppUser: true };
@@ -27,7 +27,7 @@ export const authorDashboard = query({
       .withIndex("by_author", (q) => q.eq("author", appUser._id))
       .collect();
 
-    const allChapters = [];
+    const allChapters: any[] = [];
     for (const series of userSeries) {
       const chapters = await ctx.db
         .query("chapters")
@@ -48,15 +48,25 @@ export const authorDashboard = query({
 });
 
 export const withdrawRewards = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+  args: { sessionId: v.id("walletSessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to withdraw");
+    }
+
+    // Find user by wallet address
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+      .first();
+
+    if (!appUser) {
+      throw new Error("User not found");
     }
     
     // TODO: Call Zora withdrawRewards on client, then mark in db if needed
-    console.log("Withdrawal requested for user:", userId);
+    console.log("Withdrawal requested for user:", appUser._id);
     return { ok: true };
   }
 });

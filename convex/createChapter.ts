@@ -1,22 +1,23 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
+
 
 export const createNewChapter = mutation({
   args: {
+    sessionId: v.id("walletSessions"),
     title: v.string(),
     seriesId: v.optional(v.id("series"))
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to create chapter");
     }
 
     const appUser = await ctx.db
-      .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
-      .first();
+    .query("appUsers")
+    .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+    .first();
     
     if (!appUser) {
       throw new Error("User not found");

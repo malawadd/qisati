@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { PrimaryButton } from '../atoms/PrimaryButton';
@@ -8,9 +8,10 @@ interface NavigatorPaneProps {
   seriesId: Id<"series">;
   currentChapterId: Id<"chapters">;
   onChapterSelect: (chapterId: Id<"chapters">) => void;
+  sessionId: string; // <-- Add sessionId!
 }
 
-export default function NavigatorPane({ seriesId, currentChapterId, onChapterSelect }: NavigatorPaneProps) {
+export default function NavigatorPane({ seriesId, currentChapterId, onChapterSelect, sessionId }: NavigatorPaneProps) {
   const series = useQuery(api.queries.seriesById, { id: seriesId });
   const chapters = useQuery(api.queries.chaptersForSeries, { seriesId });
   const updateTitle = useMutation(api.seriesMutations.updateSeriesTitle);
@@ -23,20 +24,23 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
   const [chapterTitleInput, setChapterTitleInput] = useState('');
 
   // Update local state when series data loads
-  useState(() => {
+  useEffect(() => {
     if (series?.title) {
       setTitleInput(series.title);
     }
-  });
+  }, [series?.title]);
 
   const hasLiveChapters = chapters?.some(c => c.status === 'live') || false;
 
   const handleTitleBlur = async () => {
     if (!series || titleInput === series.title) return;
-    
+    if (!sessionId) {
+      alert("You must be logged in to edit series.");
+      return;
+    }
     setIsUpdating(true);
     try {
-      await updateTitle({ seriesId, title: titleInput });
+      await updateTitle({ sessionId, seriesId, title: titleInput }); // <-- Pass sessionId
     } catch (error) {
       console.error('Failed to update title:', error);
       setTitleInput(series.title); // Revert on error
@@ -47,8 +51,12 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
   };
 
   const handleAddChapter = async () => {
+    if (!sessionId) {
+      alert("You must be logged in to add chapters.");
+      return;
+    }
     try {
-      const newChapterId = await createChapter({ seriesId });
+      const newChapterId = await createChapter({ sessionId, seriesId }); // <-- Pass sessionId
       onChapterSelect(newChapterId);
     } catch (error) {
       console.error('Failed to create chapter:', error);
@@ -62,13 +70,18 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
   };
 
   const handleChapterTitleSave = async () => {
+    console.log("sessionId:", sessionId);
     if (!editingChapter || !chapterTitleInput.trim()) return;
-    
+    if (!sessionId) {
+      alert("You must be logged in to edit chapters.");
+      return;
+    }
     try {
       await updateChapterTitle({ 
+        sessionId,
         chapterId: editingChapter, 
         title: chapterTitleInput.trim() 
-      });
+      }); // <-- Pass sessionId
       setEditingChapter(null);
       setChapterTitleInput('');
     } catch (error) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Editor } from '@tiptap/react';
@@ -6,9 +7,11 @@ import { api } from '../../convex/_generated/api';
 import { PrimaryButton } from './atoms/PrimaryButton';
 import { GhostButton } from './atoms/GhostButton';
 
+
 interface MintSidebarProps {
   chapterId: string;
   editor: Editor | null;
+  sessionId: string; // <-- Add sessionId prop!
 }
 
 interface MintFormData {
@@ -22,13 +25,13 @@ interface RoyaltySplit {
   percentage: number;
 }
 
-export default function MintSidebar({ chapterId, editor }: MintSidebarProps) {
+export default function MintSidebar({ chapterId, editor, sessionId }: MintSidebarProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [splits, setSplits] = useState<RoyaltySplit[]>([]);
   const [isMinting, setIsMinting] = useState(false);
   const mintChapter = useAction(api.mintChapter.mintChapter);
-  
+
   const { register, handleSubmit, watch, setValue } = useForm<MintFormData>({
     defaultValues: {
       size: 100,
@@ -88,9 +91,18 @@ export default function MintSidebar({ chapterId, editor }: MintSidebarProps) {
       return;
     }
 
+    if (!sessionId) {
+      alert('Please connect your wallet before minting.');
+      return;
+    }
+
     setIsMinting(true);
+    // Ensure chapterId is a valid string
+    console.log('Minting chapter with ID:', sessionId);
+  
     try {
       const result = await mintChapter({
+        sessionId, // <-- Pass sessionId here
         chapterId: chapterId as any,
         size: isUnlimited ? 999999 : data.size,
         price: data.price,
@@ -108,6 +120,7 @@ export default function MintSidebar({ chapterId, editor }: MintSidebarProps) {
       setIsMinting(false);
     }
   };
+
 
   const PreviewModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -1,13 +1,25 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const updateSeriesTitle = mutation({
-  args: { seriesId: v.id("series"), title: v.string() },
+  args: { sessionId: v.id("walletSessions"), seriesId: v.id("series"), title: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    // Authenticate via wallet session
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to update series");
+    }
+
+    // (Optionally) check if the user is the author of the series
+    // Get the series to check author
+    const series = await ctx.db.get(args.seriesId);
+    if (!series) throw new Error("Series not found");
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+      .first();
+    if (!appUser || String(series.author) !== String(appUser._id)) {
+      throw new Error("Not authorized");
     }
 
     // Check if any chapters are live
@@ -27,11 +39,21 @@ export const updateSeriesTitle = mutation({
 });
 
 export const createDraftChapter = mutation({
-  args: { seriesId: v.id("series") },
+  args: { sessionId: v.id("walletSessions"), seriesId: v.id("series") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to create chapter");
+    }
+    // (Optionally) check if the user is the author of the series
+    const series = await ctx.db.get(args.seriesId);
+    if (!series) throw new Error("Series not found");
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+      .first();
+    if (!appUser || String(series.author) !== String(appUser._id)) {
+      throw new Error("Not authorized");
     }
 
     // Get the last chapter to determine next index
@@ -63,11 +85,24 @@ export const createDraftChapter = mutation({
 });
 
 export const updateChapterTitle = mutation({
-  args: { chapterId: v.id("chapters"), title: v.string() },
+  args: { sessionId: v.id("walletSessions"), chapterId: v.id("chapters"), title: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to update chapter");
+    }
+
+    // (Optionally) check if the user is the author of the chapter
+    const chapter = await ctx.db.get(args.chapterId);
+    if (!chapter) throw new Error("Chapter not found");
+    const series = await ctx.db.get(chapter.series);
+    if (!series) throw new Error("Series not found");
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+      .first();
+    if (!appUser || String(series.author) !== String(appUser._id)) {
+      throw new Error("Not authorized");
     }
 
     await ctx.db.patch(args.chapterId, { title: args.title });

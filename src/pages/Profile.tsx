@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -6,8 +7,10 @@ import { PrimaryButton } from '../components/atoms/PrimaryButton';
 import { GhostButton } from '../components/atoms/GhostButton';
 import { StoryCard } from '../components/StoryCard';
 import { EditProfileModal } from '../components/EditProfileModal';
+import { useWalletAuth } from '../providers/WalletAuthProvider';
 
 export function Profile() {
+  const { user, isGuest, signOut, sessionId } = useWalletAuth();
   const [showEditModal, setShowEditModal] = useState(false);
   const path = window.location.pathname;
   const handle = path.slice(2); // Remove "/@" prefix
@@ -15,21 +18,23 @@ export function Profile() {
   // All hooks must be called before any conditional returns
   const profile = useQuery(api.profiles.profileByHandle, { handle });
   const currentUser = useQuery(api.auth.loggedInUser);
-  const currentAppUser = useQuery(api.users.getCurrentAppUser);
-  const isFollowing = useQuery(api.profiles.isFollowing, { targetHandle: handle });
+  const currentAppUser = useQuery(api.users.getCurrentAppUser, sessionId ? { sessionId } : "skip");
+  const isFollowing = useQuery(api.profiles.isFollowing, sessionId && handle ? { sessionId, targetHandle: handle } : "skip");
+
   const followUser = useMutation(api.profiles.followUser);
   const uploadImage = useAction(api.profiles.uploadImage);
   const updateProfile = useMutation(api.profiles.updateProfile);
   const createAppUser = useMutation(api.users.createAppUserIfNeeded);
+ 
 
-  const isOwnProfile = currentUser?.name === profile?.handle || currentAppUser?.handle === profile?.handle;
+  const isOwnProfile = currentAppUser?.handle === profile?.handle;
 
   // Auto-create app user if viewing own profile but no app user exists
   useEffect(() => {
-    if (currentUser && !currentAppUser && isOwnProfile) {
-      createAppUser().catch(console.error);
+    if (sessionId && !currentAppUser && isOwnProfile) {
+      createAppUser({ sessionId }).catch(console.error);
     }
-  }, [currentUser, currentAppUser, isOwnProfile, createAppUser]);
+  }, [sessionId, currentAppUser, isOwnProfile, createAppUser]);
 
   const handleImageUpload = async (file: File, type: 'avatar' | 'banner') => {
     try {
@@ -37,11 +42,15 @@ export function Profile() {
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         const imageUrl = await uploadImage({ base64 });
-        
+        if (!sessionId) {
+          // Handle error, show message, or return early
+          console.error('No session, cannot withdraw.');
+          return;
+        }
         if (type === 'avatar') {
-          await updateProfile({ avatarUrl: imageUrl });
+          await updateProfile({ sessionId, avatarUrl: imageUrl });
         } else {
-          await updateProfile({ bannerUrl: imageUrl });
+          await updateProfile({ sessionId, bannerUrl: imageUrl });
         }
       };
       reader.readAsDataURL(file);
@@ -51,8 +60,13 @@ export function Profile() {
   };
 
   const handleFollow = async () => {
+    if (!sessionId) {
+      // Handle error, show message, or return early
+      console.error('No session, cannot withdraw.');
+      return;
+    }
     try {
-      await followUser({ targetHandle: handle });
+      await followUser({ sessionId, targetHandle: handle });
     } catch (error) {
       console.error('Failed to follow/unfollow:', error);
     }
@@ -204,6 +218,7 @@ export function Profile() {
           <EditProfileModal
             user={profile}
             onClose={() => setShowEditModal(false)}
+            sessionId={sessionId}
           />
         )}
       </div>

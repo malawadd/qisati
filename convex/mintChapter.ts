@@ -1,10 +1,10 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { api } from "./_generated/api";
 
 export const mintChapter = action({
   args: {
+    sessionId: v.id("walletSessions"),
     chapterId: v.id("chapters"),
     size: v.number(),
     price: v.number(),
@@ -14,47 +14,46 @@ export const mintChapter = action({
     })))
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    // Use runQuery for all DB fetches!
+    const session = await ctx.runQuery(api.queries.walletSessionById, { sessionId: args.sessionId });
+    console.log("Session:", session);
+    console.log("Session expires at:", session?.expiresAt, "Current time:", Date.now());
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to mint");
     }
 
-    // Get chapter and series info
+    const appUser = await ctx.runQuery(api.queries.appUserByWalletAddress, { walletAddress: session.walletAddress });
+    if (!appUser) {
+      throw new Error("User not found");
+    }
+
+    // The rest stays the same...
     const chapter = await ctx.runQuery(api.queries.chapterById, { id: args.chapterId });
     if (!chapter) {
       throw new Error("Chapter not found");
     }
-
     const series = await ctx.runQuery(api.queries.seriesById, { id: chapter.series });
     if (!series) {
       throw new Error("Series not found");
     }
+    if (String(series.author) !== String(appUser._id)) {
+      throw new Error("Not authorized");
+    }
 
-    // TODO: Implement actual Zora minting
-    // const client = createWalletClient({
-    //   chain: base,
-    //   transport: http()
-    // });
-    // 
-    // const { request } = await client.simulateContract({
-    //   address: series.contract,
-    //   abi: zora1155ABI,
-    //   functionName: 'create1155OnExistingContract',
-    //   args: [
-    //     chapter.markdownCid, // URI
-    //     args.size,           // maxSupply
-    //     args.price,          // pricePerToken
-    //     args.splits || []    // royaltySplits
-    //   ]
-    // });
-    // 
-    // const hash = await client.writeContract(request);
-
-    // For now, simulate the minting process
+    // Mint logic, etc.
     const mockTokenId = Math.floor(Math.random() * 10000) + 1000;
     const mockTxHash = `0x${Math.random().toString(16).slice(2)}`;
+    console.log("Mock token ID:", mockTokenId);
+    console.log("Mock transaction hash:", mockTxHash);
 
-    // Update chapter with mint details
+    if (chapter.status !== "live") {
+      // Not published, so publish it!
+      await ctx.runMutation(api.mutations.publishChapter, {
+        sessionId: args.sessionId,
+        chapterId: args.chapterId,
+      });
+    }
+
     await ctx.runMutation(api.mutations.updateChapterAfterMint, {
       chapterId: args.chapterId,
       tokenId: mockTokenId,
@@ -63,13 +62,16 @@ export const mintChapter = action({
       remaining: args.size,
       status: "live"
     });
+    console.log("Chapter updated after minting");
 
-    // Record pending transaction
     await ctx.runMutation(api.mutations.recordPendingTx, {
+      sessionId: args.sessionId,
       hash: mockTxHash,
       type: "mintChapter",
       chapter: args.chapterId
     });
+
+    console.log("recordPendingTx updated after minting");
 
     return { 
       txHash: mockTxHash, 

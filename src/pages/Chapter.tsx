@@ -2,6 +2,8 @@ import NavBar from '../components/NavBar';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import ReactMarkdown from 'react-markdown';
+
 
 export function Chapter() {
   const path = window.location.pathname;
@@ -65,11 +67,14 @@ export function Chapter() {
                 <div className="prose max-w-none">
                   {chapter.content.split('\n\n').map((paragraph, index) => (
                     <div key={index} className="group relative mb-4">
-                      <p className="text-black leading-relaxed font-medium">
+                      <p className="text-black leading-relaxed font-medium " >
                         {paragraph.startsWith('#') ? (
-                          <span className="font-bold text-xl">{paragraph.replace(/^#+\s/, '')}</span>
+                          <span className="font-bold text-xl"></span>
                         ) : (
-                          paragraph
+                          <div
+  className="prose max-w-none"
+  dangerouslySetInnerHTML={{ __html: chapter.content }}
+/>
                         )}
                       </p>
                       <button className="absolute -left-6 top-0 opacity-0 group-hover:opacity-100 transition-opacity text-lg">

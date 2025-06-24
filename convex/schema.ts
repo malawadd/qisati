@@ -9,8 +9,18 @@ const applicationTables = {
     bannerUrl: v.optional(v.string()),
     about: v.optional(v.string()),
     authUserId: v.optional(v.id("users")), // Link to auth user
+    walletAddress: v.optional(v.string()), // Wallet address for wallet auth
   }).index("by_handle", ["handle"])
-    .index("by_auth_user", ["authUserId"]),
+    .index("by_auth_user", ["authUserId"])
+    .index("by_wallet_address", ["walletAddress"]),
+
+  walletSessions: defineTable({
+    userId: v.id("appUsers"),
+    walletAddress: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_wallet_address", ["walletAddress"])
+    .index("by_user", ["userId"]),
 
   userSocials: defineTable({
     userId: v.id("appUsers"),

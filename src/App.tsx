@@ -1,56 +1,42 @@
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { SignOutButton } from "./SignOutButton";
-import { Toaster } from "sonner";
+import { useWalletAuth } from "./providers/WalletAuthProvider";
+import { WalletSignInForm } from "./components/WalletSignInForm";
 import { Landing } from "./pages/Landing";
 import { Explore } from "./pages/Explore";
 import { Work } from "./pages/Work";
 import { Chapter } from "./pages/Chapter";
-import { Dashboard } from "./pages/Dashboard";
 import { Profile } from "./pages/Profile";
+import { Dashboard } from "./pages/Dashboard";
 import Editor from "./pages/Editor";
 
-export default function App() {
+function App() {
+  const { isAuthenticated } = useWalletAuth();
+
+  // Simple client-side routing
   const path = window.location.pathname;
   
-  // Simple routing based on pathname
-  const renderPage = () => {
-    if (path === '/') return <Landing />;
-    if (path === '/explore') return <Explore />;
-    if (path === '/dashboard') return <Dashboard />;
-    if (path.startsWith('/work/') && path.includes('/edit/')) return <Editor />;
-    if (path.startsWith('/work/') && path.includes('/chap/')) return <Chapter />;
-    if (path.startsWith('/work/')) return <Work />;
-    if (path.startsWith('/@')) return <Profile />;
-    return <Landing />;
-  };
+  if (!isAuthenticated) {
+    return <WalletSignInForm />;
+  }
 
-  return (
-    <div className="min-h-screen">
-      <Authenticated>
-        {renderPage()}
-      </Authenticated>
-      
-      <Unauthenticated>
-        <div className="min-h-screen flex flex-col bg-grid-bg">
-          <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
-            <h2 className="text-xl font-semibold text-primary">ReadOwn</h2>
-            <SignOutButton />
-          </header>
-          <main className="flex-1 flex items-center justify-center p-8">
-            <div className="w-full max-w-md mx-auto">
-              <div className="text-center mb-8">
-                <h1 className="text-5xl font-bold text-primary mb-4">Join ReadOwn</h1>
-                <p className="text-xl text-secondary">Sign in to start reading and collecting</p>
-              </div>
-              <SignInForm />
-            </div>
-          </main>
-        </div>
-      </Unauthenticated>
-      
-      <Toaster />
-    </div>
-  );
+  // Route to different pages based on path
+  if (path === '/' || path === '/home') {
+    return <Landing />;
+  } else if (path === '/explore') {
+    return <Explore />;
+  } else if (path.startsWith('/work/') && path.includes('/chap/')) {
+    return <Chapter />;
+  } else if (path.startsWith('/work/') && path.includes('/edit/')) {
+    return <Editor />;
+  } else if (path.startsWith('/work/')) {
+    return <Work />;
+  } else if (path.startsWith('/@')) {
+    return <Profile />;
+  } else if (path === '/dashboard') {
+    return <Dashboard />;
+  }
+
+  // Default to landing page
+  return <Landing />;
 }
+
+export default App;

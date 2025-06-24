@@ -1,39 +1,34 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
 
+// Create app user if needed using wallet session
 export const createAppUserIfNeeded = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+  args: { sessionId: v.id("walletSessions") },
+  handler: async (ctx, args) => {
+    // Get wallet session
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in");
     }
 
-    // Check if app user already exists
+    // Check if app user already exists (by walletAddress)
     const existingAppUser = await ctx.db
       .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
       .first();
-    
+
     if (existingAppUser) {
       return existingAppUser;
     }
 
-    // Get auth user details
-    const authUser = await ctx.db.get(userId);
-    if (!authUser) {
-      throw new Error("Auth user not found");
-    }
+    // Create app user
+    const handle = `${session.walletAddress.slice(0, 6)}${session.walletAddress.slice(-4)}`;
+    const avatarUrl = `https://api.dicebear.com/7.x/identicon/svg?seed=${session.walletAddress}`;
 
-    // Create app user with auth user details
-    const handle = authUser.name || `user_${userId.slice(-8)}`;
-    const avatarUrl = authUser.image || `https://picsum.photos/seed/${userId}/100/100`;
-    
     const appUserId = await ctx.db.insert("appUsers", {
       handle,
       avatarUrl,
-      authUserId: userId,
+      walletAddress: session.walletAddress,
       about: "New writer on ReadOwn"
     });
 
@@ -42,19 +37,19 @@ export const createAppUserIfNeeded = mutation({
 });
 
 export const getCurrentAppUser = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+  args: { sessionId: v.id("walletSessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       return null;
     }
 
-    // Find app user by auth ID
+    // Find app user by walletAddress
     const appUser = await ctx.db
       .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
       .first();
-    
+
     return appUser;
   }
 });

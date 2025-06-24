@@ -1,6 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
+
+// 1. No longer import getAuthUserId
 
 export const profileByHandle = query({
   args: { handle: v.string() },
@@ -45,13 +46,17 @@ export const profileByHandle = query({
   }
 });
 
+// Endpoints requiring auth now use sessionId
+
 export const checkHandleAvailable = query({
-  args: { handle: v.string() },
+  args: { sessionId: v.id("walletSessions"), handle: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    // Wallet session auth
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       return { available: false, error: "Must be logged in" };
     }
+    const currentUser = await ctx.db.get(session.userId);
 
     // Basic validation
     if (!/^[a-zA-Z0-9_]+$/.test(args.handle)) {
@@ -61,19 +66,13 @@ export const checkHandleAvailable = query({
       return { available: false, error: "Must be between 3 and 20 characters" };
     }
 
-    // Get current user
-    const currentUser = await ctx.db
-      .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
-      .first();
-
     const existingUser = await ctx.db
       .query("appUsers")
       .withIndex("by_handle", (q) => q.eq("handle", args.handle))
       .first();
 
     // Available if no one has it, or current user has it
-    const available = !existingUser || (currentUser && existingUser._id === currentUser._id);
+    const available = !existingUser || (currentUser && existingUser._id === existingUser._id);
     return { 
       available, 
       error: available ? null : "Handle is already taken" 
@@ -83,6 +82,7 @@ export const checkHandleAvailable = query({
 
 export const updateProfile = mutation({
   args: {
+    sessionId: v.id("walletSessions"),
     handle: v.optional(v.string()),
     about: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
@@ -94,17 +94,12 @@ export const updateProfile = mutation({
     }))),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    // Use wallet session to get user
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to update profile");
     }
-
-    // Find user by auth ID
-    const appUser = await ctx.db
-      .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
-      .first();
-    
+    const appUser = await ctx.db.get(session.userId);
     if (!appUser) {
       throw new Error("User not found");
     }
@@ -168,17 +163,13 @@ export const updateProfile = mutation({
 });
 
 export const followUser = mutation({
-  args: { targetHandle: v.string() },
+  args: { sessionId: v.id("walletSessions"), targetHandle: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Must be logged in to follow");
     }
-
-    const follower = await ctx.db
-      .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
-      .first();
+    const follower = await ctx.db.get(session.userId);
 
     const target = await ctx.db
       .query("appUsers")
@@ -217,15 +208,11 @@ export const followUser = mutation({
 });
 
 export const isFollowing = query({
-  args: { targetHandle: v.string() },
+  args: { sessionId: v.id("walletSessions"), targetHandle: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return false;
-
-    const follower = await ctx.db
-      .query("appUsers")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", userId))
-      .first();
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) return false;
+    const follower = await ctx.db.get(session.userId);
 
     const target = await ctx.db
       .query("appUsers")
@@ -244,6 +231,7 @@ export const isFollowing = query({
   }
 });
 
+// No changes to uploadImage (doesn't require user)
 export const uploadImage = action({
   args: { base64: v.string() },
   handler: async (ctx, args) => {

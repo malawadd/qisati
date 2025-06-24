@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { useState, useEffect } from 'react';
 import NavBar from '../components/NavBar';
 import { MetricTile } from '../components/atoms/MetricTile';
@@ -8,25 +9,34 @@ import { LiveChapterCard } from '../components/LiveChapterCard';
 import { NewChapterModal } from '../components/NewChapterModal';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { useWalletAuth } from '@/providers/WalletAuthProvider';
 
 export function Dashboard() {
+  const { user, isGuest, signOut, sessionId } = useWalletAuth();
   const [activeTab, setActiveTab] = useState<'drafts' | 'live'>('drafts');
   const [showNewChapterModal, setShowNewChapterModal] = useState(false);
-  const dashboard = useQuery(api.dashboard.authorDashboard);
+
+  // Pass sessionId to all authenticated queries/mutations
+  const dashboard = useQuery(api.dashboard.authorDashboard,  sessionId ? { sessionId } : "skip");
   const withdraw = useMutation(api.dashboard.withdrawRewards);
   const createAppUser = useMutation(api.users.createAppUserIfNeeded);
-  const currentAppUser = useQuery(api.users.getCurrentAppUser);
+  const currentAppUser = useQuery(api.users.getCurrentAppUser,  sessionId ? { sessionId } : "skip");
 
   // Auto-create app user if needed
   useEffect(() => {
-    if (currentAppUser === null) {
-      createAppUser().catch(console.error);
+    if (currentAppUser === null && sessionId) {
+      createAppUser({ sessionId }).catch(console.error);
     }
-  }, [currentAppUser, createAppUser]);
+  }, [currentAppUser, createAppUser, sessionId]);
 
   const handleWithdraw = async () => {
+    if (!sessionId) {
+      // Handle error, show message, or return early
+      console.error('not valid user, cannot withdraw.');
+      return;
+    }
     try {
-      await withdraw({});
+      await withdraw({ sessionId });
     } catch (error) {
       console.error('Withdrawal failed:', error);
     }
@@ -58,7 +68,7 @@ export function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-black">Welcome, Writer</h1>
+                <h1 className="text-2xl font-bold text-black">Welcome, {currentAppUser?.handle}</h1>
                 {dashboard.user && (
                   <a 
                     href={`/@${dashboard.user.handle}`}
@@ -109,13 +119,13 @@ export function Dashboard() {
           <div className="flex gap-2">
             <GhostButton 
               onClick={() => setActiveTab('drafts')}
-              className={activeTab === 'drafts' ? 'bg-primary text-white' : ''}
+              className={activeTab === 'drafts' ? 'bg-primary text-purple-500' : ''}
             >
               Drafts ({dashboard.drafts.length})
             </GhostButton>
             <GhostButton 
               onClick={() => setActiveTab('live')}
-              className={activeTab === 'live' ? 'bg-primary text-white' : ''}
+              className={activeTab === 'live' ? 'bg-primary text-purple-500' : ''}
             >
               Live ({dashboard.liveChapters.length})
             </GhostButton>
@@ -156,6 +166,7 @@ export function Dashboard() {
         <NewChapterModal
           onClose={() => setShowNewChapterModal(false)}
           onChapterCreated={handleChapterCreated}
+          sessionId={sessionId} // Pass sessionId if NewChapterModal requires it!
         />
       )}
     </>

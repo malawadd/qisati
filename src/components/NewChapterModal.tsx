@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import { useState } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -7,19 +9,21 @@ import { GhostButton } from './atoms/GhostButton';
 interface NewChapterModalProps {
   onClose: () => void;
   onChapterCreated: (chapterId: string) => void;
+  sessionId: string; // <-- Add sessionId prop!
 }
 
-export function NewChapterModal({ onClose, onChapterCreated }: NewChapterModalProps) {
+export function NewChapterModal({ onClose, onChapterCreated, sessionId }: NewChapterModalProps) {
   const [title, setTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const createChapter = useMutation(api.createChapter.createNewChapter);
 
   const handleCreate = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || !sessionId) return;
     
     setIsCreating(true);
     try {
-      const result = await createChapter({ title: title.trim() });
+     
+      const result = await createChapter({ sessionId, title: title.trim() }); // <-- Pass sessionId
       onChapterCreated(result.chapterId);
       onClose();
     } catch (error) {

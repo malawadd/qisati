@@ -35,8 +35,10 @@ import SlashMenu from '../components/editor/SlashMenu';
 import WordCountHUD from '../components/editor/WordCountHUD';
 import NavigatorPane from '../components/editor/NavigatorPane';
 import MintSidebar from '../components/MintSidebar';
+import { useWalletAuth } from '@/providers/WalletAuthProvider';
 
 export default function Editor() {
+  const { user, isGuest, signOut, sessionId } = useWalletAuth();
   const path = window.location.pathname;
   const id = path.split('/').pop() || '';
   const [isSaving, setIsSaving] = useState(false);
@@ -55,7 +57,7 @@ export default function Editor() {
       
       setIsSaving(true);
       try {
-        await saveDraft({ chapter: id as any, md: content });
+        await saveDraft({ chapter: id as any, md: content, sessionId });
         setLastSaved(new Date());
       } catch (error) {
         console.error('Failed to save draft:', error);
@@ -147,6 +149,7 @@ export default function Editor() {
     content: draft?.bodyMd || chapter?.draftMd || chapter?.bodyMd || '',
     onUpdate: ({ editor }) => {
       const content = editor.getHTML();
+      console.log('Editor content updated:', content);
       debouncedSave(content);
     },
   });
@@ -160,7 +163,7 @@ export default function Editor() {
       }
     };
     
-    const interval = setInterval(backupDraft, 60000);
+    const interval = setInterval(backupDraft, 600000);
     return () => clearInterval(interval);
   }, [editor]);
 
@@ -207,6 +210,7 @@ export default function Editor() {
           seriesId={series._id}
           currentChapterId={chapter._id}
           onChapterSelect={handleChapterSelect}
+          sessionId={sessionId}
         />
         
         {/* Editor Panel */}
@@ -251,7 +255,7 @@ export default function Editor() {
         </div>
         
         {/* Mint Sidebar */}
-        <MintSidebar chapterId={id} editor={editor} />
+        <MintSidebar chapterId={id} editor={editor} sessionId={sessionId} />
         <WordCountHUD editor={editor} />
       </div>
     </>

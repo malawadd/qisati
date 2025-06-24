@@ -29,6 +29,8 @@ import type * as seed from "../seed.js";
 import type * as seriesMutations from "../seriesMutations.js";
 import type * as uploadImage from "../uploadImage.js";
 import type * as users from "../users.js";
+import type * as walletAuth from "../walletAuth.js";
+import type * as walletAuthNode from "../walletAuthNode.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -55,6 +57,8 @@ declare const fullApi: ApiFromModules<{
   seriesMutations: typeof seriesMutations;
   uploadImage: typeof uploadImage;
   users: typeof users;
+  walletAuth: typeof walletAuth;
+  walletAuthNode: typeof walletAuthNode;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

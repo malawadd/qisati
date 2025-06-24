@@ -213,3 +213,21 @@ export const chaptersForSeries = query({
       .collect();
   }
 });
+
+export const walletSessionById = query({
+  args: { sessionId: v.id("walletSessions") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.sessionId);
+  },
+});
+
+// Get appUser by wallet address
+export const appUserByWalletAddress = query({
+  args: { walletAddress: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", args.walletAddress))
+      .first();
+  },
+});

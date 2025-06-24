@@ -38,3 +38,28 @@ body {
 .prose h1, .prose h2, .prose h3 {
   @apply font-bold text-black;
 }
+
+/* Tomo-style button classes */
+.nb-button {
+  @apply neo bg-white text-black px-4 py-2 font-bold hover:scale-105 transition-transform;
+}
+
+.nb-button-accent {
+  @apply neo bg-primary text-white px-4 py-2 font-bold hover:scale-105 transition-transform;
+}
+
+.nb-panel {
+  @apply neo bg-white text-black;
+}
+
+.nb-panel-success {
+  @apply neo bg-green-100 text-black;
+}
+
+.nb-panel-warning {
+  @apply neo bg-red-100 text-black;
+}
+
+.nb-grid-bg {
+  @apply grid-bg;
+}
