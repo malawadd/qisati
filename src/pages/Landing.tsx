@@ -75,7 +75,7 @@ export function Landing() {
             <StoryCard 
               key={story.id} 
               {...story} 
-              onClick={() => window.location.href = `/work/digital-nomad`}
+              onClick={() => window.location.href = `/work/${story.slug}`}
             />
           ))}
         </div>
