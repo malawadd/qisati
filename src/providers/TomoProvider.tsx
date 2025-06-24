@@ -7,7 +7,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
 const config = getDefaultConfig({
   clientId: '9TJ5ODBE68qK0yY7F8FSn5cScSdZZ1btWx3hxKlwYAlsaTr91H2EIR7CtoP7Ap0Il6h2GHmkXqIYD92o3E2QqZyP',
-  appName: 'ReadOwn',
+  appName: 'Qisati',
   projectId:  'your-project-id',
   chains: [baseSepolia],
   ssr: false,

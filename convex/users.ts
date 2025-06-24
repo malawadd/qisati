@@ -29,7 +29,7 @@ export const createAppUserIfNeeded = mutation({
       handle,
       avatarUrl,
       walletAddress: session.walletAddress,
-      about: "New writer on ReadOwn"
+      about: "New writer on Qisati"
     });
 
     return await ctx.db.get(appUserId);

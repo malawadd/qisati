@@ -62,7 +62,7 @@ export function WalletAuthProvider({ children }: WalletAuthProviderProps) {
 
     setIsLoading(true);
     try {
-      const message = `Sign in to ReadOwn\n\nWallet: ${address}\nTimestamp: ${Date.now()}`;
+      const message = `Sign in to Qisati\n\nWallet: ${address}\nTimestamp: ${Date.now()}`;
      
       const signature = await signMessageAsync({ message });
      

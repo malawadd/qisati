@@ -37,7 +37,7 @@ export default function NavBar() {
       }`}>
         {/* Logo */}
         <a href="/" className="font-bold text-xl text-black hover:text-primary transition-colors">
-          ReadOwn
+        Qisati
         </a>
 
         {/* Center Links */}
