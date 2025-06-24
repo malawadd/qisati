@@ -28,6 +28,7 @@ import type * as router from "../router.js";
 import type * as seed from "../seed.js";
 import type * as seriesMutations from "../seriesMutations.js";
 import type * as uploadImage from "../uploadImage.js";
+import type * as uploadipfs from "../uploadipfs.js";
 import type * as users from "../users.js";
 import type * as walletAuth from "../walletAuth.js";
 import type * as walletAuthNode from "../walletAuthNode.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seriesMutations: typeof seriesMutations;
   uploadImage: typeof uploadImage;
+  uploadipfs: typeof uploadipfs;
   users: typeof users;
   walletAuth: typeof walletAuth;
   walletAuthNode: typeof walletAuthNode;

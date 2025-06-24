@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { PrimaryButton } from '../atoms/PrimaryButton';
 import { Id } from '../../../convex/_generated/dataModel';
+// import { PlusIcon } from 'lucide-react';
 
 interface NavigatorPaneProps {
   seriesId: Id<"series">;
@@ -104,58 +105,57 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
   }
 
   return (
-    <div className="w-64 neo bg-white p-4 overflow-y-auto">
-      {/* Editable Series Title */}
-      <div className="mb-4">
-        <label className="block text-xs font-bold text-black mb-2">
-          SERIES TITLE
-        </label>
-        <input
-          type="text"
-          value={titleInput}
-          onChange={(e) => setTitleInput(e.target.value)}
-          onBlur={handleTitleBlur}
-          disabled={hasLiveChapters || isUpdating}
-          className={`neo bg-white w-full px-3 py-2 text-black font-medium text-sm focus:border-[#A589E8] ${
-            hasLiveChapters ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-          placeholder="Enter series title..."
-        />
-        {hasLiveChapters && (
-          <div className="text-xs text-gray-500 mt-1">
-            Series locked after first publish
+    <div className="w-80 shrink-0 p-4 border-r-4 border-black bg-white">
+      <div className="flex flex-col h-full">
+        <h2 className="font-bold mb-4 text-lg">Chapters</h2>
+        
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-2">
+            {chapters.map((chapter) => (
+                <ChapterRow
+                key={chapter._id}
+                chapter={chapter}
+                isActive={chapter._id === currentChapterId}
+                isEditing={editingChapter === chapter._id}
+                titleInput={chapterTitleInput}
+                onTitleInputChange={setChapterTitleInput}
+                onSelect={() => onChapterSelect(chapter._id)}
+                onEdit={() => handleChapterTitleEdit(chapter)}
+                onSave={handleChapterTitleSave}
+                onCancel={handleChapterTitleCancel}
+              />
+            ))}
           </div>
-        )}
-      </div>
-
-      {/* Chapter List */}
-      <div className="mb-4">
-        <div className="text-xs font-bold text-black mb-2">CHAPTERS</div>
-        <div className="space-y-1">
-          {chapters.map((chapter) => (
-            <ChapterRow
-              key={chapter._id}
-              chapter={chapter}
-              isActive={chapter._id === currentChapterId}
-              isEditing={editingChapter === chapter._id}
-              titleInput={chapterTitleInput}
-              onTitleInputChange={setChapterTitleInput}
-              onSelect={() => onChapterSelect(chapter._id)}
-              onEdit={() => handleChapterTitleEdit(chapter)}
-              onSave={handleChapterTitleSave}
-              onCancel={handleChapterTitleCancel}
-            />
-          ))}
         </div>
-      </div>
 
-      {/* Add Chapter Button */}
-      <PrimaryButton
-        onClick={handleAddChapter}
-        className="w-full text-sm"
-      >
-        + Add Chapter
-      </PrimaryButton>
+        <button
+          onClick={handleAddChapter}
+          className={`
+            mt-4 px-4 py-3
+            neo
+            bg-white
+            border-4 border-black
+            shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+            rounded-sm
+            font-bold
+            text-black
+            hover:bg-gray-50
+            active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+            active:translate-x-[2px]
+            active:translate-y-[2px]
+            focus:outline-none
+            focus:ring-2
+            focus:ring-primary
+            focus:ring-offset-2
+            focus:ring-offset-white
+            transition-all
+            flex items-center justify-center gap-2
+          `}
+        >
+          {/* <PlusIcon className="w-5 h-5" /> */}
+          Add Chapter
+        </button>
+      </div>
     </div>
   );
 }

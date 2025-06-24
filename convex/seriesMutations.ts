@@ -109,3 +109,67 @@ export const updateChapterTitle = mutation({
     return { success: true };
   }
 });
+
+export const updateSeriesMeta = mutation({
+  args: { 
+    sessionId: v.id("walletSessions"), 
+    seriesId: v.id("series"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    logline: v.optional(v.string()),
+    coverCid: v.optional(v.string()),
+    contract: v.optional(v.string()),
+    tokenId: v.optional(v.number()),
+    category: v.optional(v.union(
+      v.literal("sci-fi"),
+      v.literal("fantasy"), 
+      v.literal("thriller"),
+      v.literal("romance"),
+      v.literal("mystery"),
+      v.literal("literary")
+    )),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
+      throw new Error("Must be logged in to update series");
+    }
+
+    // Check author permissions
+    const series = await ctx.db.get(args.seriesId);
+    if (!series) throw new Error("Series not found");
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+      .first();
+    if (!appUser || String(series.author) !== String(appUser._id)) {
+      throw new Error("Not authorized");
+    }
+
+    // If trying to change title, check if any chapters are live
+    if (args.title) {
+      const liveChapter = await ctx.db
+        .query("chapters")
+        .withIndex("by_series", (q) => q.eq("series", args.seriesId))
+        .filter((q) => q.eq(q.field("status"), "live"))
+        .first();
+      if (liveChapter) {
+        throw new Error("Cannot change title after publishing");
+      }
+    }
+
+    // Build update object with only provided fields
+    const updates: any = {};
+    if (args.title) updates.title = args.title;
+    if (args.description) updates.synopsisMd = args.description;
+    if (args.logline) updates.logline = args.logline;
+    if (args.coverCid) updates.coverUrl = args.coverCid;
+    if (args.contract) updates.contract = args.contract;
+    if (typeof args.tokenId === "number") updates.tokenId = args.tokenId;
+    if (args.category) updates.category = args.category;
+
+    await ctx.db.patch(args.seriesId, updates);
+    return { success: true };
+  }
+});
+

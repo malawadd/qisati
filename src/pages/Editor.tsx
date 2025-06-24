@@ -36,6 +36,7 @@ import WordCountHUD from '../components/editor/WordCountHUD';
 import NavigatorPane from '../components/editor/NavigatorPane';
 import MintSidebar from '../components/MintSidebar';
 import { useWalletAuth } from '@/providers/WalletAuthProvider';
+import SeriesSettingsPane from '@/components/editor/SeriesSettingsPane';
 
 export default function Editor() {
   const { user, isGuest, signOut, sessionId } = useWalletAuth();
@@ -43,10 +44,12 @@ export default function Editor() {
   const id = path.split('/').pop() || '';
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState<'chapter' | 'settings'>('chapter');
   
   const chapter = useQuery(api.queries.chapterById, { id: id as any });
   const draft = useQuery(api.queries.draftByChapter, { chapterId: id as any });
   const series = useQuery(api.queries.seriesById, chapter ? { id: chapter.series } : "skip");
+  const chapters = useQuery(api.queries.chaptersForSeries, series ? { seriesId: series._id } : "skip");
   const saveDraft = useMutation(api.mutations.saveDraftMd);
   const uploadImage = useAction(api.uploadImage.uploadImage);
 
@@ -188,7 +191,7 @@ export default function Editor() {
     }
   };
 
-  if (!chapter || !series) {
+  if (!chapter || !series || !chapters) {
     return (
       <>
         <NavBar />
@@ -205,18 +208,19 @@ export default function Editor() {
     <>
       <NavBar />
       <div className="grid-bg min-h-screen flex">
-        {/* Navigator Pane */}
+        {/* Navigator Pane - Now 1/5 width */}
         <NavigatorPane
           seriesId={series._id}
+          chapters={chapters}
           currentChapterId={chapter._id}
           onChapterSelect={handleChapterSelect}
           sessionId={sessionId}
         />
         
-        {/* Editor Panel */}
+        {/* Main Content - Now 3/5 width */}
         <div className="flex-1 p-8">
           <div className="neo bg-white h-full flex flex-col">
-            {/* Header */}
+            {/* Header with Tabs */}
             <div className="border-b-4 border-black p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-4">
@@ -226,7 +230,19 @@ export default function Editor() {
                   >
                     ← Dashboard
                   </button>
-                  <h1 className="text-xl font-bold text-black">{chapter.title}</h1>
+                  
+                  <div className="flex gap-2">
+                    <TabButton
+                      active={activeTab === 'chapter'}
+                      onClick={() => setActiveTab('chapter')}
+                      label="Chapter"
+                    />
+                    <TabButton
+                      active={activeTab === 'settings'}
+                      onClick={() => setActiveTab('settings')}
+                      label="Settings"
+                    />
+                  </div>
                 </div>
                 <div className="text-sm text-gray-600">
                   {isSaving ? (
@@ -240,21 +256,29 @@ export default function Editor() {
               </div>
             </div>
 
-            {/* Toolbar */}
-            <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
-            
-            {/* Editor Content */}
-            <div className="flex-1 p-6 overflow-y-auto relative">
-              <EditorContent 
-                editor={editor} 
-                className="prose prose-lg max-w-none text-black focus:outline-none min-h-full"
+            {/* Tab Content */}
+            {activeTab === 'chapter' ? (
+              <>
+                <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+                <div className="flex-1 p-6 overflow-y-auto relative">
+                  <EditorContent 
+                    editor={editor} 
+                    className="prose prose-lg max-w-none text-black focus:outline-none min-h-full"
+                  />
+                  <SlashMenu editor={editor} onImageUpload={handleImageUpload} />
+                </div>
+              </>
+            ) : (
+              <SeriesSettingsPane 
+                series={series}
+                chapters={chapters}
+                sessionId={sessionId}
               />
-              <SlashMenu editor={editor} onImageUpload={handleImageUpload} />
-            </div>
+            )}
           </div>
         </div>
         
-        {/* Mint Sidebar */}
+        {/* Mint Sidebar - Now 1/5 width */}
         <MintSidebar chapterId={id} editor={editor} sessionId={sessionId} />
         <WordCountHUD editor={editor} />
       </div>
@@ -272,4 +296,17 @@ function debounce<T extends (...args: any[]) => any>(
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
+}
+
+function TabButton({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`neo bg-gray-100 px-3 py-1 text-sm font-bold text-black  transition-colors ${
+        active ? 'bg-primary text-white' : 'bg-gray-100 text-black hover:bg-gray-200'
+      }`}
+    >
+      {label}
+    </button>
+  );
 }
