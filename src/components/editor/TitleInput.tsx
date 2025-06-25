@@ -13,7 +13,7 @@ interface TitleInputProps {
 
 export default function TitleInput({ title, seriesId, sessionId, disabled }: TitleInputProps) {
   const [value, setValue] = useState(title);
-  const updateMeta = useMutation(api.mutations.updateSeriesMeta);
+  const updateMeta = useMutation(api.seriesMutations.updateSeriesMeta);
 
   const handleBlur = () => {
     if (value === title || disabled) return;
