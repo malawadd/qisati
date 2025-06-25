@@ -6,6 +6,7 @@ import LoglineInput from './LoglineInput';
 import { Id } from '../../../convex/_generated/dataModel';
 import CategorySelector from './CategorySelector';
 import LaunchCoinButton from './LaunchCoinButton';
+import TokenDetailsCard from './TokenDetailsCard';
 
 interface SeriesSettingsPaneProps {
   series: Doc<"series">;
@@ -106,6 +107,11 @@ export default function SeriesSettingsPane({ series, chapters, sessionId }: Seri
             {series.synopsisMd}
           </p>
         </div>
+        {series.contract !== "0x0000000000000000000000000000000000000000" && (
+            <div className="mt-2 flex justify-center">
+        <TokenDetailsCard address={series.contract} />
+            </div>
+        )}
       </div>
     </div>
   );
