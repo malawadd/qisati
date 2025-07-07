@@ -1,11 +1,15 @@
 import NavBar from '../components/NavBar';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
+import { GhostButton } from '../components/atoms/GhostButton';
+import { AudioPlayer } from '../components/AudioPlayer';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import ReactMarkdown from 'react-markdown';
+import { useState } from 'react';
 
 
 export function Chapter() {
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const path = window.location.pathname;
   const pathParts = path.split('/');
   const chapterId = pathParts[pathParts.length - 1];
@@ -20,6 +24,11 @@ export function Chapter() {
   );
   
   const collectChapter = useMutation(api.mutations.collectChapter);
+
+  // Get character voices for audio playback
+  const characterVoices = useQuery(api.queries.getCharacterVoicesByUser, 
+    { sessionId: "dummy" as any } // We'll need to handle this properly for guest users
+  );
 
   if (!chapter) {
     return (
@@ -89,6 +98,26 @@ export function Chapter() {
             <div className="lg:col-span-1">
               <div className="neo bg-white p-6 sticky top-8">
                 <h3 className="font-bold text-lg text-black mb-4">{chapter.title}</h3>
+                
+                {/* Audio Player Section */}
+                {chapter.audioSegments && chapter.audioSegments.length > 0 && (
+                  <div className="mb-4 p-4 neo bg-blue-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">🎧</span>
+                      <span className="font-bold text-black">Audio Available</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Listen to this chapter with character voices
+                    </p>
+                    <GhostButton
+                      onClick={() => setShowAudioPlayer(true)}
+                      className="w-full"
+                    >
+                      🎵 Listen to Story
+                    </GhostButton>
+                  </div>
+                )}
+                
                 <div className="mb-4">
                   <div className="text-2xl font-bold text-black mb-2">{chapter.price}</div>
                   <div className="text-sm text-black">
@@ -130,6 +159,43 @@ export function Chapter() {
             </button>
           </div>
         </div>
+
+        {/* Audio Player Modal */}
+        {showAudioPlayer && chapter.audioSegments && chapter.audioSegments.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="neo bg-white p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-black">{chapter.title}</h3>
+                  <p className="text-gray-600">Audio Story Experience</p>
+                </div>
+                <GhostButton
+                  onClick={() => setShowAudioPlayer(false)}
+                  className="text-sm px-4 py-2"
+                >
+                  ✕ Close
+                </GhostButton>
+              </div>
+              
+              <AudioPlayer
+                segments={chapter.audioSegments}
+                characterVoices={characterVoices || []}
+                onSegmentChange={(index) => {
+                  console.log('Now playing segment:', index);
+                }}
+                className="mb-6"
+              />
+              
+              {/* Story Text with Highlighting */}
+              <div className="neo bg-gray-50 p-6">
+                <h4 className="font-bold text-black mb-4">Story Text</h4>
+                <div className="prose max-w-none text-black">
+                  <div dangerouslySetInnerHTML={{ __html: chapter.content }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

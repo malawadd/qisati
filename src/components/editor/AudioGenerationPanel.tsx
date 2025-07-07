@@ -5,6 +5,7 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { Editor } from '@tiptap/react';
 import { PrimaryButton } from '../atoms/PrimaryButton';
 import { GhostButton } from '../atoms/GhostButton';
+import { AudioPlayer } from '../AudioPlayer';
 
 interface AudioGenerationPanelProps {
   editor: Editor | null;
@@ -15,6 +16,7 @@ interface AudioGenerationPanelProps {
 export default function AudioGenerationPanel({ editor, chapterId, sessionId }: AudioGenerationPanelProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState<any>(null);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
 
   const chapter = useQuery(api.queries.chapterById, { id: chapterId });
   const characterVoices = useQuery(api.queries.getCharacterVoicesByUser, { sessionId });
@@ -168,19 +170,23 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
       {/* Actions */}
       <div className="flex gap-3">
         <PrimaryButton
-          onClick={handleGenerateAudio}
-          disabled={isGenerating || dialogueSegments.length === 0 || remainingGenerations <= 0}
+            setShowAudioPlayer(true);
           className="flex-1"
         >
           {isGenerating ? 'Generating Audio...' : 'Generate Audio'}
         </PrimaryButton>
         
-        {chapter?.audioSegments && chapter.audioSegments.length > 0 && (
+        {chapter?.audioSegments && chapter.audioSegments.length > 0 ? (
           <GhostButton
             onClick={() => {
-              // TODO: Implement audio preview
-              alert('Audio preview coming soon!');
-            }}
+            onClick={() => setShowAudioPlayer(true)}
+          >
+            Preview Audio
+          </GhostButton>
+        ) : (
+          <GhostButton
+            disabled
+            className="opacity-50 cursor-not-allowed"
           >
             Preview Audio
           </GhostButton>
@@ -193,6 +199,31 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
         <p>• Create character voices in the Settings tab</p>
         <p>• Each chapter has a limit of 10 audio generations</p>
       </div>
+
+      {/* Audio Player Modal */}
+      {showAudioPlayer && chapter?.audioSegments && chapter.audioSegments.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="neo bg-white p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-black">Audio Preview</h3>
+              <GhostButton
+                onClick={() => setShowAudioPlayer(false)}
+                className="text-sm px-3 py-1"
+              >
+                ✕ Close
+              </GhostButton>
+            </div>
+            
+            <AudioPlayer
+              segments={chapter.audioSegments}
+              characterVoices={characterVoices}
+              onSegmentChange={(index) => {
+                console.log('Playing segment:', index);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
