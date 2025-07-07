@@ -12,7 +12,7 @@ interface AudioSegment {
 
 interface AudioPlayerProps {
   segments: AudioSegment[];
-  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string }>;
+  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string; instructions?: string }>;
   onSegmentChange?: (segmentIndex: number) => void;
   className?: string;
 }

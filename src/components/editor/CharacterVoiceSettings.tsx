@@ -10,11 +10,26 @@ interface CharacterVoiceSettingsProps {
   sessionId: Id<"walletSessions">;
 }
 
+const OPENAI_VOICES = [
+  { id: 'alloy', name: 'Alloy', description: 'Neutral, balanced voice' },
+  { id: 'ash', name: 'Ash', description: 'Warm, expressive voice' },
+  { id: 'ballad', name: 'Ballad', description: 'Melodic, storytelling voice' },
+  { id: 'coral', name: 'Coral', description: 'Bright, energetic voice' },
+  { id: 'echo', name: 'Echo', description: 'Male, clear and direct' },
+  { id: 'fable', name: 'Fable', description: 'British accent, storytelling' },
+  { id: 'onyx', name: 'Onyx', description: 'Deep, authoritative male' },
+  { id: 'nova', name: 'Nova', description: 'Young, energetic female' },
+  { id: 'sage', name: 'Sage', description: 'Wise, thoughtful voice' },
+  { id: 'shimmer', name: 'Shimmer', description: 'Soft, gentle female' },
+  { id: 'verse', name: 'Verse', description: 'Poetic, expressive voice' },
+] as const;
+
 export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSettingsProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<Id<"characterVoices"> | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    openaiVoiceId: 'alloy' as const,
     instructions: '',
     description: ''
   });
@@ -32,13 +47,14 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
       await saveCharacterVoice({
         sessionId,
         name: formData.name.trim(),
-        instructions: formData.instructions.trim(),
+        openaiVoiceId: formData.openaiVoiceId,
+        instructions: formData.instructions.trim() || undefined,
         description: formData.description.trim() || undefined,
         characterId: editingId || undefined
       });
 
       // Reset form
-      setFormData({ name: '', instructions: '', description: '' });
+      setFormData({ name: '', openaiVoiceId: 'alloy', instructions: '', description: '' });
       setIsCreating(false);
       setEditingId(null);
       setSelectedTemplate('');
@@ -51,7 +67,8 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
   const handleEdit = (character: any) => {
     setFormData({
       name: character.name,
-      instructions: character.instructions,
+      openaiVoiceId: character.openaiVoiceId,
+      instructions: character.instructions || '',
       description: character.description || ''
     });
     setEditingId(character._id);
@@ -71,7 +88,7 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
   };
 
   const handleCancel = () => {
-    setFormData({ name: '', instructions: '', description: '' });
+    setFormData({ name: '', openaiVoiceId: 'alloy', instructions: '', description: '' });
     setIsCreating(false);
     setEditingId(null);
     setSelectedTemplate('');
@@ -87,6 +104,11 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
           instructions: template.template
         }));
       }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        instructions: ''
+      }));
     }
   };
 
@@ -124,6 +146,26 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
 
             <div>
               <label className="block text-sm font-bold text-black mb-2">
+                Base Voice
+              </label>
+              <select
+                value={formData.openaiVoiceId}
+                onChange={(e) => setFormData({ ...formData, openaiVoiceId: e.target.value as any })}
+                className="neo bg-white w-full px-3 py-2 text-black font-medium"
+              >
+                {OPENAI_VOICES.map(voice => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.name} - {voice.description}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs text-gray-500 mt-1">
+                Choose the base OpenAI voice for this character
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-black mb-2">
                 Instruction Template (Optional)
               </label>
               <select
@@ -131,7 +173,7 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
                 onChange={(e) => handleTemplateSelect(e.target.value)}
                 className="neo bg-white w-full px-3 py-2 text-black font-medium"
               >
-                <option value="">Select a template...</option>
+                <option value="">No template - use base voice only</option>
                 {instructionTemplates.map(template => (
                   <option key={template.id} value={template.id}>
                     {template.name} - {template.description}
@@ -139,24 +181,23 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
                 ))}
               </select>
               <div className="text-xs text-gray-500 mt-1">
-                Choose a template to auto-fill instructions, or write your own below
+                Choose a template to customize the voice behavior, or leave empty for default
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-black mb-2">
-                Voice Instructions
+                Custom Voice Instructions (Optional)
               </label>
               <textarea
                 value={formData.instructions}
                 onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                 className="neo bg-white w-full px-3 py-2 text-black font-medium resize-none"
                 rows={8}
-                placeholder="Enter detailed voice instructions for the AI model..."
-                required
+                placeholder="Enter detailed voice instructions to customize how the AI speaks this character's dialogue..."
               />
               <div className="text-xs text-gray-500 mt-1">
-                Describe voice affect, tone, pacing, emotion, pronunciation, and delivery style
+                Describe voice affect, tone, pacing, emotion, pronunciation, and delivery style. Leave empty to use the base voice without modifications.
               </div>
             </div>
 
@@ -194,16 +235,28 @@ export default function CharacterVoiceSettings({ sessionId }: CharacterVoiceSett
                 <div className="flex items-center gap-3 mb-2">
                   <h4 className="font-bold text-black">{character.name}</h4>
                   <span className="neo bg-primary text-white px-2 py-1 text-xs font-bold">
-                    Custom Voice
+                    {OPENAI_VOICES.find(v => v.id === character.openaiVoiceId)?.name || character.openaiVoiceId}
                   </span>
+                  {character.instructions && (
+                    <span className="neo bg-blue-100 text-black px-2 py-1 text-xs font-bold">
+                      Custom Instructions
+                    </span>
+                  )}
                 </div>
                 {character.description && (
-                  <p className="text-sm text-gray-600">{character.description}</p>
+                  <p className="text-sm text-gray-600 mb-2">{character.description}</p>
                 )}
-                <div className="text-xs text-gray-500 mt-2 max-h-20 overflow-y-auto">
-                  <div className="font-medium mb-1">Instructions:</div>
-                  <div className="whitespace-pre-wrap">{character.instructions}</div>
-                </div>
+                <p className="text-xs text-gray-500 mb-2">
+                  Base Voice: {OPENAI_VOICES.find(v => v.id === character.openaiVoiceId)?.description}
+                </p>
+                {character.instructions && (
+                  <div className="text-xs text-gray-500 max-h-20 overflow-y-auto">
+                    <div className="font-medium mb-1">Custom Instructions:</div>
+                    <div className="whitespace-pre-wrap bg-gray-50 p-2 rounded">
+                      {character.instructions}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <GhostButton

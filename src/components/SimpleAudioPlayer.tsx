@@ -10,7 +10,7 @@ interface AudioSegment {
 
 interface SimpleAudioPlayerProps {
   segments: AudioSegment[];
-  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string }>;
+  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string; instructions?: string }>;
   chapterTitle: string;
 }
 

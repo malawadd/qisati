@@ -136,7 +136,20 @@ export const saveCharacterVoice = mutation({
   args: {
     sessionId: v.id("walletSessions"),
     name: v.string(),
-    instructions: v.string(),
+    openaiVoiceId: v.union(
+      v.literal("alloy"),
+      v.literal("ash"),
+      v.literal("ballad"),
+      v.literal("coral"),
+      v.literal("echo"), 
+      v.literal("fable"),
+      v.literal("onyx"),
+      v.literal("nova"),
+      v.literal("sage"),
+      v.literal("shimmer"),
+      v.literal("verse")
+    ),
+    instructions: v.optional(v.string()),
     description: v.optional(v.string()),
     characterId: v.optional(v.id("characterVoices")) // For updates
   },
@@ -160,6 +173,7 @@ export const saveCharacterVoice = mutation({
       
       await ctx.db.patch(args.characterId, {
         name: args.name,
+        openaiVoiceId: args.openaiVoiceId,
         instructions: args.instructions,
         description: args.description
       });
@@ -170,6 +184,7 @@ export const saveCharacterVoice = mutation({
       return await ctx.db.insert("characterVoices", {
         userId: appUser._id,
         name: args.name,
+        openaiVoiceId: args.openaiVoiceId,
         instructions: args.instructions,
         description: args.description,
         createdAt: Date.now()

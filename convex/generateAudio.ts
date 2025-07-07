@@ -96,8 +96,8 @@ export const generateChapterAudio = action({
           body: JSON.stringify({
             model: "gpt-4o-mini-tts",
             input: segment.text,
-            voice: "coral", // Using coral as default voice for gpt-4o-mini-tts
-            instructions: voiceId, // voiceId now contains the instructions string
+            voice: voiceId, // voiceId now contains the actual OpenAI voice ID
+            instructions: characterVoices.find(cv => cv._id === segment.characterId)?.instructions,
             response_format: "mp3"
           }),
         });
