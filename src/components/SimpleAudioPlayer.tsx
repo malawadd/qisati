@@ -10,7 +10,7 @@ interface AudioSegment {
 
 interface SimpleAudioPlayerProps {
   segments: AudioSegment[];
-  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string; instructions?: string }>;
+  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string;  }>;
   chapterTitle: string;
 }
 
@@ -95,6 +95,7 @@ export function SimpleAudioPlayer({ segments, characterVoices, chapterTitle }: S
 
   const playNextSegment = () => {
     if (currentSegmentIndex < segments.length - 1) {
+      setIsPlaying(true);
       setCurrentSegmentIndex(prev => prev + 1);
     } else {
       // End of all segments

@@ -101,7 +101,9 @@ export function AudioPlayer({ segments, characterVoices, onSegmentChange, classN
 
   const playNextSegment = () => {
     if (currentSegmentIndex < segments.length - 1) {
+      setIsPlaying(true);
       setCurrentSegmentIndex(prev => prev + 1);
+      
     } else {
       // End of all segments
       setIsPlaying(false);
