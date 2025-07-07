@@ -98,7 +98,7 @@ export default function DialogueToolbar({ editor, sessionId }: DialogueToolbarPr
               </span>
               <div>
                 <div className="font-bold text-sm">{character.name}</div>
-                <div className="text-xs opacity-70">{character.openaiVoiceId}</div>
+                <div className="text-xs opacity-70">Custom Voice</div>
               </div>
             </button>
           ))}

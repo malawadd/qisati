@@ -94,9 +94,10 @@ export const generateChapterAudio = action({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "tts-1",
+            model: "gpt-4o-mini-tts",
             input: segment.text,
-            voice: voiceId,
+            voice: "coral", // Using coral as default voice for gpt-4o-mini-tts
+            instructions: voiceId, // voiceId now contains the instructions string
             response_format: "mp3"
           }),
         });

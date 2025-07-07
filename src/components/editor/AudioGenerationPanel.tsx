@@ -142,6 +142,11 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
                     </div>
                     <div className="text-sm text-gray-700 line-clamp-2">
                       "{segment.text}"
+                      {character?.instructions && (
+                        <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                          {character.instructions.split('\n')[0]}...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
