@@ -149,13 +149,27 @@ export default function Editor() {
         placeholder: 'Start writing your epic chapter...',
       }),
     ],
-    content: draft?.bodyMd || chapter?.draftMd || chapter?.bodyMd || '',
+    content: '', // Initialize with empty content, will be set via useEffect
     onUpdate: ({ editor }) => {
       const content = editor.getHTML();
       console.log('Editor content updated:', content);
       debouncedSave(content);
     },
   });
+
+  // Load content into editor once data is available
+  useEffect(() => {
+    if (!editor) return;
+    
+    // Determine the content to load (priority: draft > chapter draftMd > chapter bodyMd)
+    const contentToLoad = draft?.bodyMd || chapter?.draftMd || chapter?.bodyMd || '';
+    
+    // Only update if there's content and the editor is currently empty or different
+    if (contentToLoad && editor.getHTML() !== contentToLoad) {
+      // Set content without triggering the onUpdate callback to prevent unnecessary saves
+      editor.commands.setContent(contentToLoad, false);
+    }
+  }, [editor, draft?.bodyMd, chapter?.draftMd, chapter?.bodyMd]);
 
   // Auto-backup every minute
   useEffect(() => {
