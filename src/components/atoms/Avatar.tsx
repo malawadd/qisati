@@ -11,7 +11,7 @@ export function Avatar({ src, alt, size = 40 }: AvatarProps) {
       style={{ width: size, height: size }}
     >
       {src ? (
-        <img src={src} alt={alt} className="w-full h-full object-cover" />
+        <img src={src || undefined} alt={alt} className="w-full h-full object-cover" />
       ) : (
         <span className="text-black font-bold text-sm">
           {alt.charAt(0).toUpperCase()}

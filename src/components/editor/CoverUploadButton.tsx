@@ -109,7 +109,7 @@ const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
       {currentCover && (
         <div className="neo bg-gray-100 p-2">
           <img
-            src={currentCover}
+            src={currentCover || undefined}
             alt="Current cover"
             className="w-32 h-32 object-cover neo"
           />

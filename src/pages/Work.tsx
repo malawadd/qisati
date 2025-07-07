@@ -4,7 +4,7 @@ import { Avatar } from '../components/atoms/Avatar';
 import { ChapterCard } from '../components/ChapterCard';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { CoinTradingWidget } from '../components/coin/CoinTradingWidget';
+// import { CoinTradingWidget } from '../components/coin/CoinTradingWidget';
 import { Address ,  } from 'viem';
 import TradingScreen from '@/components/coin/TradingScreen';
 import { useState } from "react";
@@ -53,7 +53,7 @@ export function Work() {
         <div className="relative z-10 w-full flex justify-center pb-8">
         <div className="neo bg-white p-8 max-w-4xl w-full text-center shadow-lg rounded-2xl">
             <img 
-              src={work.cover} 
+              src={work.cover || undefined} 
               alt={work.title}
               className="w-60 h-90 object-cover mx-auto mb-6 neo"
             />

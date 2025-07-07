@@ -28,7 +28,7 @@ export function StoryCard({ title, author, cover, price, supply, onClick }: Stor
       onClick={onClick}
     >
       <div className="h-48 bg-gray-200 mb-4 overflow-hidden">
-        <img src={cover} alt={title} className="w-full h-full object-cover" />
+        <img src={cover || undefined} alt={title} className="w-full h-full object-cover" />
       </div>
       
       <h3 className="font-bold text-lg text-black mb-2 line-clamp-2 leading-tight">
