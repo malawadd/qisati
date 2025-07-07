@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface AudioSegment {
   text: string;
@@ -7,307 +7,223 @@ interface AudioSegment {
   startIndex: number;
   endIndex: number;
 }
-
 interface SimpleAudioPlayerProps {
   segments: AudioSegment[];
-  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string;  }>;
+  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string }>;
   chapterTitle: string;
 }
 
-export function SimpleAudioPlayer({ segments, characterVoices, chapterTitle }: SimpleAudioPlayerProps) {
+export function SimpleAudioPlayer({
+  segments,
+  characterVoices,
+  chapterTitle,
+}: SimpleAudioPlayerProps) {
+  /* ──────────── UI state ──────────── */
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [current, setCurrent] = useState(0);           // index of clip
+  const [progress, setProgress] = useState(0);         // %
+  const [duration, setDuration] = useState(0);         // seconds
   const [error, setError] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  /* ──────────── Audio element ──────────── */
+  const audioRef = useRef<HTMLAudioElement>(new Audio()).current;
 
-  // Initialize audio element
-  useEffect(() => {
-    audioRef.current = new Audio();
-    const audio = audioRef.current;
+  const abortRef = useRef<AbortController | null>(null);
 
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
-    };
+  /* ---------- helpers ---------- */
+  const loadClip = useCallback(
+    async (idx: number) => {
+      abortRef.current?.abort();           // cancel any previous load/play
+      abortRef.current = new AbortController();
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      setProgress((audio.currentTime / audio.duration) * 100);
-    };
+      const clip = segments[idx];
+      if (!clip) return;
 
-    const handleEnded = () => {
-      playNextSegment();
-    };
-
-    const handleError = () => {
-      setError('Failed to load audio segment');
-      setIsLoading(false);
-      setIsPlaying(false);
-    };
-
-    const handleCanPlay = () => {
-      setError(null);
-      setIsLoading(false);
-      // If we were playing when this segment loaded, continue playing
-      if (isPlaying && audioRef.current) {
-        audioRef.current.play().catch(error => {
-          console.error('Failed to auto-play next segment:', error);
-          setError('Failed to play audio segment');
+      try {
+        audioRef.src = clip.audioUrl;
+        await audioRef.play();             // throws if user-gesture missing or load fails
+        setIsPlaying(true);
+      } catch (e) {
+        if (!(abortRef.current?.signal.aborted)) {
+          console.error(e);
+          setError('Could not play audio');
           setIsPlaying(false);
-        });
+        }
+      }
+    },
+    [audioRef, segments],
+  );
+
+  /* ---------- mount: one-time listeners ---------- */
+  useEffect(() => {
+    const a = audioRef;
+
+    const onTime = () => {
+      if (a.duration) {
+        setProgress((a.currentTime / a.duration) * 100);
       }
     };
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('canplay', handleCanPlay);
+    const onLoaded = () => setDuration(a.duration || 0);
+
+    const onEnded = () => {
+      if (current < segments.length - 1) {
+        setCurrent(i => i + 1);            // triggers next load in next effect
+      } else {
+        setIsPlaying(false);               // playlist finished
+      }
+    };
+
+    a.addEventListener('timeupdate', onTime);
+    a.addEventListener('loadedmetadata', onLoaded);
+    a.addEventListener('ended', onEnded);
+    a.addEventListener('error', () => {
+      setError('Audio error');
+      setIsPlaying(false);
+    });
 
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.pause();
+      a.pause();
+      a.src = '';
+      a.removeEventListener('timeupdate', onTime);
+      a.removeEventListener('loadedmetadata', onLoaded);
+      a.removeEventListener('ended', onEnded);
     };
-  }, []);
+  }, [audioRef, current, segments.length]);
 
-  // Load current segment
+  /* ---------- (re)load clip when index changes ---------- */
   useEffect(() => {
-    if (segments.length > 0 && audioRef.current) {
-      const currentSegment = segments[currentSegmentIndex];
-      if (currentSegment) {
-        setIsLoading(true);
-        setError(null);
-        audioRef.current.src = currentSegment.audioUrl;
-        audioRef.current.load();
-      }
-    }
-  }, [currentSegmentIndex, segments]);
+    if (segments.length) void loadClip(current);
+  }, [current, segments.length, loadClip]);
 
-  const playNextSegment = () => {
-    if (currentSegmentIndex < segments.length - 1) {
-      setIsPlaying(true);
-      setCurrentSegmentIndex(prev => prev + 1);
-    } else {
-      // End of all segments
-      setIsPlaying(false);
-      setCurrentSegmentIndex(0);
-      setProgress(0);
-      setCurrentTime(0);
-    }
+  /* ---------- controls ---------- */
+  const play = () => isPlaying || loadClip(current);
+  const pause = () => {
+    audioRef.pause();
+    setIsPlaying(false);
+  };
+  const stop = () => {
+    abortRef.current?.abort();
+    audioRef.pause();
+    audioRef.currentTime = 0;
+    setIsPlaying(false);
+    setProgress(0);
+    setCurrent(0);
   };
 
-  const playPreviousSegment = () => {
-    if (currentSegmentIndex > 0) {
-      setCurrentSegmentIndex(prev => prev - 1);
+  const seek = (pct: number) => {
+    if (audioRef.duration) {
+      audioRef.currentTime = pct * audioRef.duration;
+      setProgress(pct * 100);
     }
   };
 
-  const handlePlay = async () => {
-    if (!audioRef.current || segments.length === 0) return;
+  /* ---------- derived ---------- */
+  const curChar = characterVoices?.find(v => v._id === segments[current]?.characterId);
 
-    try {
-      setError(null);
-      await audioRef.current.play();
-      setIsPlaying(true);
-    } catch (error) {
-      console.error('Failed to play audio:', error);
-      setError('Failed to play audio');
-      setIsPlaying(false);
-    }
-  };
-
-  const handlePause = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const handleStop = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-      setCurrentSegmentIndex(0);
-      setProgress(0);
-      setCurrentTime(0);
-    }
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !duration) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * duration;
-    
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const getCurrentCharacter = () => {
-    const currentSegment = segments[currentSegmentIndex];
-    if (!currentSegment || !characterVoices) return null;
-    
-    return characterVoices.find(cv => cv._id === currentSegment.characterId);
-  };
-
-  if (segments.length === 0) {
-    return null;
-  }
-
-  const currentCharacter = getCurrentCharacter();
-
+  /* ---------- render ---------- */
+  if (!segments.length) return null;
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ${
-      isMinimized ? 'transform translate-y-16' : 'transform translate-y-0'
-    }`}>
-      {/* Minimized View */}
+    <>
+      {/* ───────── Minimized FAB ───────── */}
       {isMinimized && (
-        <div className="bg-black text-white p-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={isPlaying ? handlePause : handlePlay}
-              className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold hover:bg-primary-hover transition-colors"
-            >
-              {isLoading ? '⏳' : isPlaying ? '⏸' : '▶'}
-            </button>
-            <div className="text-sm">
+      <div
+        /* whole circle opens the panel */
+        onClick={() => setIsMinimized(false)}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50
+                   flex items-center justify-center
+                   w-16 h-16 rounded-full bg-primary shadow-xl
+                   cursor-pointer"
+      >
+        {/* inner span toggles play/pause without expanding */}
+        <span
+          onClick={e => {
+            e.stopPropagation();           // don’t bubble -> keeps panel closed
+            void (isPlaying ? pause() : play());
+          }}
+          className="flex items-center justify-center
+                     w-12 h-12 rounded-full bg-white text-primary text-xl"
+        >
+          {isPlaying ? '⏸' : '▶'}
+        </span>
+      </div>
+    )}
+  
+      {/* ───────── Full Player Panel ───────── */}
+      {!isMinimized && (
+        <div
+          className="fixed bottom-0 inset-x-0 z-40 neo bg-white border-t-4 border-black p-4"
+        >
+          {/* header */}
+          <div className="flex justify-between mb-3">
+            <div>
               <div className="font-bold">{chapterTitle}</div>
-              <div className="text-gray-300">
-                {currentCharacter ? currentCharacter.name : 'Narrator'} • {currentSegmentIndex + 1}/{segments.length}
+              <div className="text-xs text-gray-600">
+                {current + 1}/{segments.length}
               </div>
             </div>
+  
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsMinimized(true)} title="Minimize">
+                ⬇
+              </button>
+              <button onClick={stop} title="Close">✕</button>
+            </div>
           </div>
-          <button
-            onClick={() => setIsMinimized(false)}
-            className="text-white hover:text-gray-300 transition-colors"
-          >
-            ⬆
-          </button>
+  
+          <div className="mb-3">
+<div
+  className="h-2 bg-gray-200 rounded cursor-pointer"
+  onClick={e => {
+    const pct = e.nativeEvent.offsetX / (e.target as HTMLDivElement).offsetWidth;
+    seek(pct);
+  }}
+>
+  <div className="h-full bg-primary rounded" style={{ width: `${progress}%` }} />
+</div>
+<div className="flex justify-between text-xs text-gray-600 mt-1">
+  <span>{format(duration * (progress / 100))}</span>
+  <span>{format(duration)}</span>
+</div>
+</div>
+
+{/* controls */}
+<div className="flex gap-3 justify-center">
+<button
+  onClick={() => setCurrent(i => Math.max(0, i - 1))}
+  disabled={current === 0}
+  className="w-8 h-8 neo bg-gray-100 disabled:opacity-50"
+>
+  ⏮
+</button>
+<button
+  onClick={isPlaying ? pause : play}
+  className="w-12 h-12 neo bg-primary text-white"
+>
+  {isPlaying ? '⏸' : '▶'}
+</button>
+<button
+  onClick={() => setCurrent(i => Math.min(segments.length - 1, i + 1))}
+  disabled={current === segments.length - 1}
+  className="w-8 h-8 neo bg-gray-100 disabled:opacity-50"
+>
+  ⏭
+</button>
+</div>
+     
+         
         </div>
       )}
-
-      {/* Full Player */}
-      <div className="neo bg-white border-t-4 border-black p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <span className="text-lg">🎧</span>
-            <div>
-              <div className="font-bold text-black text-sm">{chapterTitle}</div>
-              <div className="text-xs text-gray-600">
-                Audio Story • {currentSegmentIndex + 1} of {segments.length}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsMinimized(true)}
-              className="text-gray-600 hover:text-black transition-colors text-sm"
-              title="Minimize"
-            >
-              ⬇
-            </button>
-            <button
-              onClick={handleStop}
-              className="text-gray-600 hover:text-black transition-colors text-sm"
-              title="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        {/* Current Character */}
-        {currentCharacter && (
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 neo bg-primary text-white flex items-center justify-center text-xs font-bold">
-              {currentCharacter.name.charAt(0).toUpperCase()}
-            </div>
-            <span className="text-sm font-medium text-black">{currentCharacter.name}</span>
-          </div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-100 text-red-700 text-xs p-2 rounded mb-3">
-            {error}
-          </div>
-        )}
-
-        {/* Progress Bar */}
-        <div className="mb-3">
-          <div 
-            className="w-full h-2 bg-gray-200 cursor-pointer rounded"
-            onClick={handleSeek}
-          >
-            <div 
-              className="h-full bg-primary transition-all duration-100 rounded"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-gray-600 mt-1">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={playPreviousSegment}
-            disabled={currentSegmentIndex === 0}
-            className="w-8 h-8 neo bg-gray-100 text-black flex items-center justify-center font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ⏮
-          </button>
-
-          {isLoading ? (
-            <div className="w-12 h-12 neo bg-gray-100 text-black flex items-center justify-center font-bold">
-              ⏳
-            </div>
-          ) : isPlaying ? (
-            <button
-              onClick={handlePause}
-              className="w-12 h-12 neo bg-primary text-white flex items-center justify-center font-bold hover:bg-primary-hover transition-colors"
-            >
-              ⏸
-            </button>
-          ) : (
-            <button
-              onClick={handlePlay}
-              className="w-12 h-12 neo bg-primary text-white flex items-center justify-center font-bold hover:bg-primary-hover transition-colors"
-            >
-              ▶
-            </button>
-          )}
-
-          <button
-            onClick={playNextSegment}
-            disabled={currentSegmentIndex === segments.length - 1}
-            className="w-8 h-8 neo bg-gray-100 text-black flex items-center justify-center font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ⏭
-          </button>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }
+
+/* util */
+const format = (s: number) =>
+  `${Math.floor(s / 60)}:${Math.floor(s % 60)
+    .toString()
+    .padStart(2, '0')}`;
+
+
+{/* progress */}

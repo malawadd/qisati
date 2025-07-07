@@ -94,3 +94,7 @@ body {
 
 .character-dialogue[data-character-id*="5"] { @apply bg-pink-100 border-pink-500; }
 .character-dialogue[data-character-id*="5"]::before { @apply bg-pink-500; }
+.fab {
+  @apply w-14 h-14 neo bg-primary text-white rounded-full
+         flex items-center justify-center shadow-xl;
+}

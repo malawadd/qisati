@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { PrimaryButton } from './atoms/PrimaryButton';
 import { GhostButton } from './atoms/GhostButton';
 
@@ -9,173 +9,127 @@ interface AudioSegment {
   startIndex: number;
   endIndex: number;
 }
-
 interface AudioPlayerProps {
   segments: AudioSegment[];
-  characterVoices?: Array<{ _id: string; name: string; openaiVoiceId: string; instructions?: string }>;
-  onSegmentChange?: (segmentIndex: number) => void;
+  characterVoices?: Array<{
+    _id: string;
+    name: string;
+    openaiVoiceId: string;
+    instructions?: string;
+  }>;
+  onSegmentChange?: (idx: number) => void;
   className?: string;
 }
 
-export function AudioPlayer({ segments, characterVoices, onSegmentChange, className = '' }: AudioPlayerProps) {
+export function AudioPlayer({
+  segments,
+  characterVoices,
+  onSegmentChange,
+  className = '',
+}: AudioPlayerProps) {
+  /* ──────────── state ──────────── */
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [idx, setIdx] = useState(0);
+  const [progressPct, setProgressPct] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  /* ──────────── refs ──────────── */
+  const audio = useRef<HTMLAudioElement>(new Audio()).current;
+  const abort = useRef<AbortController | null>(null);
 
-  // Initialize audio element
+  /* ──────────── helpers ──────────── */
+  const loadClip = useCallback(
+    async (i: number) => {
+      abort.current?.abort();            // cancel any previous play()
+      abort.current = new AbortController();
+
+      const clip = segments[i];
+      if (!clip) return;
+
+      try {
+        audio.src = clip.audioUrl;
+        await audio.play();              // throws if user gesture missing
+        setIsPlaying(true);
+      } catch (e) {
+        if (!abort.current.signal.aborted) {
+          console.error(e);
+          setError('Could not play audio');
+          setIsPlaying(false);
+        }
+      }
+    },
+    [audio, segments],
+  );
+
+  /* ──────────── mount listeners once ──────────── */
   useEffect(() => {
-    audioRef.current = new Audio();
-    const audio = audioRef.current;
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
+    const onTime = () =>
+      setProgressPct(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
+    const onLoaded = () => setDuration(audio.duration || 0);
+    const onEnded = () => {
+      if (idx < segments.length - 1) setIdx(i => i + 1);
+      else setIsPlaying(false);
     };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      setProgress((audio.currentTime / audio.duration) * 100);
-    };
-
-    const handleEnded = () => {
-      playNextSegment();
-    };
-
-    const handleError = () => {
-      setError('Failed to load audio segment');
-      setIsLoading(false);
+    const onError = () => {
+      setError('Audio error');
       setIsPlaying(false);
     };
 
-    const handleCanPlay = () => {
-      setError(null);
-      setIsLoading(false);
-      // If we were playing when this segment loaded, continue playing
-      if (isPlaying && audioRef.current) {
-        audioRef.current.play().catch(error => {
-          console.error('Failed to auto-play next segment:', error);
-          setError('Failed to play audio segment');
-          setIsPlaying(false);
-        });
-      }
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('loadedmetadata', onLoaded);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
 
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('canplay', handleCanPlay);
       audio.pause();
+      audio.src = '';
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('loadedmetadata', onLoaded);
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
     };
-  }, []);
+  }, [audio, idx, segments.length]);
 
-  // Load current segment
+  /* ──────────── (re)load when index changes ──────────── */
   useEffect(() => {
-    if (segments.length > 0 && audioRef.current) {
-      const currentSegment = segments[currentSegmentIndex];
-      if (currentSegment) {
-        setIsLoading(true);
-        setError(null);
-        audioRef.current.src = currentSegment.audioUrl;
-        audioRef.current.load();
-        
-        // Notify parent component of segment change
-        onSegmentChange?.(currentSegmentIndex);
-      }
-    }
-  }, [currentSegmentIndex, segments, onSegmentChange]);
+    if (segments.length) loadClip(idx);
+    onSegmentChange?.(idx);
+  }, [idx, segments.length, loadClip, onSegmentChange]);
 
-  const playNextSegment = () => {
-    if (currentSegmentIndex < segments.length - 1) {
-      setIsPlaying(true);
-      setCurrentSegmentIndex(prev => prev + 1);
-      
-    } else {
-      // End of all segments
-      setIsPlaying(false);
-      setCurrentSegmentIndex(0);
-      setProgress(0);
-      setCurrentTime(0);
-    }
+  /* ──────────── controls ──────────── */
+  const play = () => isPlaying || loadClip(idx);
+  const pause = () => {
+    audio.pause();
+    setIsPlaying(false);
+  };
+  const stop = () => {
+    abort.current?.abort();
+    audio.pause();
+    audio.currentTime = 0;
+    setIsPlaying(false);
+    setProgressPct(0);
+    setIdx(0);
   };
 
-  const playPreviousSegment = () => {
-    if (currentSegmentIndex > 0) {
-      setCurrentSegmentIndex(prev => prev - 1);
+  const seek = (clientX: number, rectWidth: number) => {
+    if (audio.duration) {
+      const pct = clientX / rectWidth;
+      audio.currentTime = pct * audio.duration;
+      setProgressPct(pct * 100);
     }
   };
 
-  const handlePlay = async () => {
-    if (!audioRef.current || segments.length === 0) return;
+  /* ──────────── derived ──────────── */
+  const seg = segments[idx];
+  const char = characterVoices?.find(c => c._id === seg?.characterId);
+  const fmt = (s: number) =>
+    `${Math.floor(s / 60)}:${Math.floor(s % 60)
+      .toString()
+      .padStart(2, '0')}`;
 
-    try {
-      setError(null);
-      await audioRef.current.play();
-      setIsPlaying(true);
-    } catch (error) {
-      console.error('Failed to play audio:', error);
-      setError('Failed to play audio. Please try again.');
-      setIsPlaying(false);
-    }
-  };
-
-  const handlePause = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const handleStop = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-      setCurrentSegmentIndex(0);
-      setProgress(0);
-      setCurrentTime(0);
-    }
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !duration) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * duration;
-    
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const getCurrentCharacter = () => {
-    const currentSegment = segments[currentSegmentIndex];
-    if (!currentSegment || !characterVoices) return null;
-    
-    return characterVoices.find(cv => cv._id === currentSegment.characterId);
-  };
-
-  if (segments.length === 0) {
+  /* ──────────── render ──────────── */
+  if (!segments.length) {
     return (
       <div className={`neo bg-gray-100 p-6 text-center ${className}`}>
         <p className="text-gray-600 font-medium">No audio segments available</p>
@@ -184,130 +138,85 @@ export function AudioPlayer({ segments, characterVoices, onSegmentChange, classN
     );
   }
 
-  const currentSegment = segments[currentSegmentIndex];
-  const currentCharacter = getCurrentCharacter();
-
   return (
     <div className={`neo bg-white p-6 ${className}`}>
-      {/* Current Segment Info */}
+      {/* header */}
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-bold text-black">
-            Segment {currentSegmentIndex + 1} of {segments.length}
+        <div className="flex justify-between mb-2">
+          <h4 className="font-bold">
+            Segment {idx + 1} / {segments.length}
           </h4>
-          {currentCharacter && (
+          {char && (
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 neo bg-primary text-white flex items-center justify-center text-xs font-bold">
-                {currentCharacter.name.charAt(0).toUpperCase()}
+              <div className="w-6 h-6 bg-primary text-white flex items-center justify-center rounded-full text-xs">
+                {char.name[0].toUpperCase()}
               </div>
-              <span className="text-sm font-medium text-black">{currentCharacter.name}</span>
+              <span className="text-sm font-medium">{char.name}</span>
             </div>
           )}
         </div>
-        
-        {currentSegment && (
-          <div className="neo bg-gray-50 p-3">
-            <p className="text-sm text-gray-700 italic">
-              "{currentSegment.text}"
-            </p>
-          </div>
-        )}
+        <div className="neo bg-gray-50 p-3 italic text-sm">“{seg.text}”</div>
       </div>
 
-      {/* Error Display */}
       {error && (
-        <div className="neo bg-red-100 p-3 mb-4">
-          <p className="text-red-700 text-sm font-medium">{error}</p>
-        </div>
+        <div className="neo bg-red-100 p-3 mb-4 text-red-700 text-sm font-medium">{error}</div>
       )}
 
-      {/* Progress Bar */}
+      {/* progress */}
       <div className="mb-4">
-        <div 
-          className="w-full h-2 bg-gray-200 cursor-pointer neo"
-          onClick={handleSeek}
+        <div
+          className="h-2 bg-gray-200 neo cursor-pointer"
+          onClick={e => seek(e.nativeEvent.offsetX, (e.target as HTMLDivElement).offsetWidth)}
         >
-          <div 
-            className="h-full bg-primary transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-primary" style={{ width: `${progressPct}%` }} />
         </div>
         <div className="flex justify-between text-xs text-gray-600 mt-1">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+          <span>{fmt(duration * (progressPct / 100))}</span>
+          <span>{fmt(duration)}</span>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-3 mb-4">
-        <GhostButton
-          onClick={playPreviousSegment}
-          disabled={currentSegmentIndex === 0}
-          className="text-sm px-3 py-2"
-        >
+      {/* controls */}
+      <div className="flex justify-center gap-3 mb-4">
+        <GhostButton onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0}>
           ⏮ Previous
         </GhostButton>
 
-        {isLoading ? (
-          <div className="neo bg-gray-100 px-6 py-3 text-black font-bold">
-            Loading...
-          </div>
-        ) : isPlaying ? (
-          <PrimaryButton onClick={handlePause} className="px-6 py-3">
-            ⏸ Pause
-          </PrimaryButton>
+        {isPlaying ? (
+          <PrimaryButton onClick={pause}>⏸ Pause</PrimaryButton>
         ) : (
-          <PrimaryButton onClick={handlePlay} className="px-6 py-3">
-            ▶ Play
-          </PrimaryButton>
+          <PrimaryButton onClick={play}>▶ Play</PrimaryButton>
         )}
 
         <GhostButton
-          onClick={playNextSegment}
-          disabled={currentSegmentIndex === segments.length - 1}
-          className="text-sm px-3 py-2"
+          onClick={() => setIdx(i => Math.min(segments.length - 1, i + 1))}
+          disabled={idx === segments.length - 1}
         >
           Next ⏭
         </GhostButton>
 
-        <GhostButton
-          onClick={handleStop}
-          className="text-sm px-3 py-2"
-        >
-          ⏹ Stop
-        </GhostButton>
+        <GhostButton onClick={stop}>⏹ Stop</GhostButton>
       </div>
 
-      {/* Segment Navigation */}
+      {/* list */}
       <div className="border-t-2 border-black pt-4">
-        <h5 className="font-bold text-black mb-2">All Segments:</h5>
-        <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-          {segments.map((segment, index) => {
-            const character = characterVoices?.find(cv => cv._id === segment.characterId);
-            return (
-              <button
-                key={index}
-                onClick={() => setCurrentSegmentIndex(index)}
-                className={`text-left p-2 rounded transition-colors ${
-                  index === currentSegmentIndex
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-black hover:bg-gray-200'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold">{index + 1}.</span>
-                  {character && (
-                    <span className="text-xs bg-white bg-opacity-20 px-1 rounded">
-                      {character.name}
-                    </span>
-                  )}
-                  <span className="text-xs truncate flex-1">
-                    "{segment.text.slice(0, 50)}..."
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+        <h5 className="font-bold mb-2">All Segments</h5>
+        <div className="grid gap-2 max-h-32 overflow-y-auto">
+          {segments.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`text-left p-2 rounded ${
+                i === idx ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              <span className="font-bold text-xs mr-1">{i + 1}.</span>
+              {characterVoices && (
+                <span className="text-xs mr-1">{characterVoices.find(c => c._id === s.characterId)?.name}</span>
+              )}
+              <span className="text-xs truncate">“{s.text.slice(0, 50)}…”</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
