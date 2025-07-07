@@ -1,15 +1,11 @@
 import NavBar from '../components/NavBar';
 import { PrimaryButton } from '../components/atoms/PrimaryButton';
-import { GhostButton } from '../components/atoms/GhostButton';
-import { AudioPlayer } from '../components/AudioPlayer';
+import { SimpleAudioPlayer } from '../components/SimpleAudioPlayer';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import ReactMarkdown from 'react-markdown';
-import { useState } from 'react';
-
 
 export function Chapter() {
-  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const path = window.location.pathname;
   const pathParts = path.split('/');
   const chapterId = pathParts[pathParts.length - 1];
@@ -37,6 +33,15 @@ export function Chapter() {
     api.queries.getCharacterVoicesByIds,
     characterIds.length > 0 ? { characterIds } : "skip"
   );
+
+  // Helper function to clean HTML content and remove editor annotations
+  const cleanContent = (htmlContent: string) => {
+    // Remove character dialogue annotations and other editor-specific markup
+    return htmlContent
+      .replace(/<span[^>]*data-character-id[^>]*>(.*?)<\/span>/g, '$1')
+      .replace(/class="character-dialogue[^"]*"/g, '')
+      .replace(/data-character-id="[^"]*"/g, '');
+  };
 
   if (!chapter) {
     return (
@@ -73,32 +78,24 @@ export function Chapter() {
     }
   };
 
+  const hasAudio = chapter.audioSegments && chapter.audioSegments.length > 0;
+
   return (
     <>
       <NavBar />
-      <div className="min-h-screen grid-bg">
+      <div className="min-h-screen grid-bg" style={{ paddingBottom: hasAudio ? '120px' : '0' }}>
         <div className="max-w-7xl mx-auto px-8 py-12">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <div className="neo bg-white p-12">
                 <div className="prose max-w-none">
-                  {chapter.content.split('\n\n').map((paragraph, index) => (
-                    <div key={index} className="group relative mb-4">
-                      <p className="text-black leading-relaxed font-medium " >
-                        {paragraph.startsWith('#') ? (
-                          <span className="font-bold text-xl"></span>
-                        ) : (
-                          <div
-  className="prose max-w-none"
-  dangerouslySetInnerHTML={{ __html: chapter.content }}
-/>
-                        )}
-                      </p>
-                      <button className="absolute -left-6 top-0 opacity-0 group-hover:opacity-100 transition-opacity text-lg">
-                        💬
-                      </button>
-                    </div>
-                  ))}
+                  {/* Clean content rendering without annotations */}
+                  <div
+                    className="prose max-w-none text-black"
+                    dangerouslySetInnerHTML={{ 
+                      __html: cleanContent(chapter.content || chapter.bodyMd || '') 
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -107,22 +104,16 @@ export function Chapter() {
               <div className="neo bg-white p-6 sticky top-8">
                 <h3 className="font-bold text-lg text-black mb-4">{chapter.title}</h3>
                 
-                {/* Audio Player Section */}
-                {chapter.audioSegments && chapter.audioSegments.length > 0 && (
-                  <div className="mb-4 p-4 neo bg-blue-50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">🎧</span>
-                      <span className="font-bold text-black">Audio Available</span>
+                {/* Simple audio indicator - no controls here */}
+                {hasAudio && (
+                  <div className="mb-4 p-3 neo bg-blue-50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">🎧</span>
+                      <span className="font-medium text-black text-sm">Audio Available</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Listen to this chapter with character voices
+                    <p className="text-xs text-gray-600">
+                      Audio player will appear at the bottom of the page
                     </p>
-                    <GhostButton
-                      onClick={() => setShowAudioPlayer(true)}
-                      className="w-full"
-                    >
-                      🎵 Listen to Story
-                    </GhostButton>
                   </div>
                 )}
                 
@@ -168,41 +159,13 @@ export function Chapter() {
           </div>
         </div>
 
-        {/* Audio Player Modal */}
-        {showAudioPlayer && chapter.audioSegments && chapter.audioSegments.length > 0 && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="neo bg-white p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-black">{chapter.title}</h3>
-                  <p className="text-gray-600">Audio Story Experience</p>
-                </div>
-                <GhostButton
-                  onClick={() => setShowAudioPlayer(false)}
-                  className="text-sm px-4 py-2"
-                >
-                  ✕ Close
-                </GhostButton>
-              </div>
-              
-              <AudioPlayer
-                segments={chapter.audioSegments}
-                characterVoices={characterVoices || []}
-                onSegmentChange={(index) => {
-                  console.log('Now playing segment:', index);
-                }}
-                className="mb-6"
-              />
-              
-              {/* Story Text with Highlighting */}
-              <div className="neo bg-gray-50 p-6">
-                <h4 className="font-bold text-black mb-4">Story Text</h4>
-                <div className="prose max-w-none text-black">
-                  <div dangerouslySetInnerHTML={{ __html: chapter.content }} />
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Simple Audio Player - Fixed at bottom */}
+        {hasAudio && (
+          <SimpleAudioPlayer
+            segments={chapter.audioSegments}
+            characterVoices={characterVoices || []}
+            chapterTitle={chapter.title}
+          />
         )}
       </div>
     </>
