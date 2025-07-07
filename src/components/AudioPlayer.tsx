@@ -57,6 +57,14 @@ export function AudioPlayer({ segments, characterVoices, onSegmentChange, classN
     const handleCanPlay = () => {
       setError(null);
       setIsLoading(false);
+      // If we were playing when this segment loaded, continue playing
+      if (isPlaying && audioRef.current) {
+        audioRef.current.play().catch(error => {
+          console.error('Failed to auto-play next segment:', error);
+          setError('Failed to play audio segment');
+          setIsPlaying(false);
+        });
+      }
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
