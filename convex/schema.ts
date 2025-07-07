@@ -85,14 +85,7 @@ const applicationTables = {
   characterVoices: defineTable({
     userId: v.id("appUsers"),
     name: v.string(),
-    openaiVoiceId: v.union(
-      v.literal("alloy"),
-      v.literal("echo"), 
-      v.literal("fable"),
-      v.literal("onyx"),
-      v.literal("nova"),
-      v.literal("shimmer")
-    ),
+    instructions: v.string(),
     description: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
