@@ -218,7 +218,7 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
             
             <AudioPlayer
               segments={chapter.audioSegments}
-              characterVoices={characterVoices}
+              characterVoices={characterVoices || []}
               onSegmentChange={(index) => {
                 console.log('Playing segment:', index);
               }}

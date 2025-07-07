@@ -25,9 +25,17 @@ export function Chapter() {
   
   const collectChapter = useMutation(api.mutations.collectChapter);
 
-  // Get character voices for audio playback
-  const characterVoices = useQuery(api.queries.getCharacterVoicesByUser, 
-    { sessionId: "dummy" as any } // We'll need to handle this properly for guest users
+  // Extract unique character IDs from audio segments
+  const characterIds = chapter?.audioSegments 
+    ? [...new Set(chapter.audioSegments
+        .map(segment => segment.characterId)
+        .filter(Boolean))] as any[]
+    : [];
+
+  // Get character voices for audio playback (public query, no auth needed)
+  const characterVoices = useQuery(
+    api.queries.getCharacterVoicesByIds,
+    characterIds.length > 0 ? { characterIds } : "skip"
   );
 
   if (!chapter) {

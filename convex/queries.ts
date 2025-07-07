@@ -256,3 +256,22 @@ export const getCharacterVoicesByUser = query({
       .collect();
   }
 });
+
+export const getCharacterVoicesByIds = query({
+  args: { characterIds: v.array(v.id("characterVoices")) },
+  handler: async (ctx, args) => {
+    if (args.characterIds.length === 0) {
+      return [];
+    }
+    
+    const characterVoices = [];
+    for (const id of args.characterIds) {
+      const voice = await ctx.db.get(id);
+      if (voice) {
+        characterVoices.push(voice);
+      }
+    }
+    
+    return characterVoices;
+  }
+});
