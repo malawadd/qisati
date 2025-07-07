@@ -170,11 +170,9 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
       {/* Actions */}
       <div className="flex gap-3">
         <PrimaryButton
-          onClick={() => {
-            setShowAudioPlayer(true);
-          }}
-          disabled={isGenerating}
-          className="flex-1"
+           onClick={handleGenerateAudio}
+           disabled={isGenerating || dialogueSegments.length === 0 || remainingGenerations <= 0}
+           className="flex-1"
         >
           {isGenerating ? 'Generating Audio...' : 'Generate Audio'}
         </PrimaryButton>
