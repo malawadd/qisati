@@ -30,3 +30,5 @@ package-lock.json
 src/src.xml
 src/components/editor/LaunchCoinButton copy.tsx
 .env
+src/components/coin/CoinTradingWidget.tsx
+convex/generateAudio copy.ts

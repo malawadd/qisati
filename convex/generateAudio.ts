@@ -3,6 +3,15 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { ActionCtx } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
+
+type GenerateAudioResult = {
+  success: boolean;
+  generatedCount: number;
+  totalSegments: number;
+  remainingGenerations: number;
+};
 
 export const generateChapterAudio = action({
   args: {
@@ -10,12 +19,24 @@ export const generateChapterAudio = action({
     chapterId: v.id("chapters"),
     dialogueSegments: v.array(v.object({
       text: v.string(),
-      characterId: v.string(),
+      characterId: v.id("characterVoices"),
       startIndex: v.number(),
       endIndex: v.number()
     }))
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx: ActionCtx,
+    args: { 
+      sessionId: Id<"walletSessions">; 
+      chapterId: Id<"chapters">; 
+      dialogueSegments: Array<{
+        text: string; 
+        characterId: Id<"characterVoices">; 
+        startIndex: number; 
+        endIndex: number
+      }> 
+    }
+  ): Promise<GenerateAudioResult> => {
     // Verify session
     const session = await ctx.runQuery(api.queries.walletSessionById, { sessionId: args.sessionId });
     if (!session || session.expiresAt < Date.now()) {
@@ -39,16 +60,16 @@ export const generateChapterAudio = action({
     }
 
     // Check generation limit
-    const currentCount = chapter.audioGenerationCount || 0;
+    const currentCount: number = chapter.audioGenerationCount ?? 0;
     if (currentCount >= 10) {
       throw new Error("Audio generation limit reached (10 per chapter)");
     }
 
     // Get user's character voices
     const characterVoices = await ctx.runQuery(api.queries.getCharacterVoicesByUser, { sessionId: args.sessionId });
-    const voiceMap = new Map(characterVoices.map(cv => [cv._id, cv.openaiVoiceId]));
+    const voiceMap = new Map(characterVoices.map((cv: Doc<"characterVoices">) => [cv._id, cv.openaiVoiceId]));
 
-    const audioSegments = [];
+    const audioSegments: Doc<"chapters">["audioSegments"] = [];
     let generatedCount = 0;
 
     for (const segment of args.dialogueSegments) {
@@ -65,6 +86,7 @@ export const generateChapterAudio = action({
 
       try {
         // Call OpenAI TTS API
+        console.log(`Generating audio for segment: ${segment.text}`);
         const response = await fetch("https://api.openai.com/v1/audio/speech", {
           method: "POST",
           headers: {
@@ -82,16 +104,18 @@ export const generateChapterAudio = action({
         if (!response.ok) {
           throw new Error(`OpenAI API error: ${response.statusText}`);
         }
-
+        console.log(`Audio generated for segment: ${segment.text}---------`);
         const audioBuffer = await response.arrayBuffer();
-        const audioUint8Array = new Uint8Array(audioBuffer);
 
         // Upload to IPFS via Pinata
+        console.log(`Uploading audio for segment: ${segment.text}`);
         const uploadResult = await ctx.runAction(api.uploadImage.uploadImageToIPFS, {
           file: audioBuffer,
           fileName: `audio-${args.chapterId}-${generatedCount}.mp3`,
           mimeType: "audio/mpeg"
         });
+
+        console.log(`Audio uploaded: ${uploadResult.url}`);
 
         audioSegments.push({
           text: segment.text,
@@ -102,8 +126,8 @@ export const generateChapterAudio = action({
         });
 
         generatedCount++;
-      } catch (error) {
-        console.error(`Failed to generate audio for segment: ${error}`);
+      } catch (error: unknown) {
+        console.error(`Failed to generate audio for segment: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other segments
       }
     }

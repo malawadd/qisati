@@ -18,6 +18,7 @@ import type * as chainsync from "../chainsync.js";
 import type * as createChapter from "../createChapter.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
+import type * as generateAudio from "../generateAudio.js";
 import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
 import type * as mintChapter from "../mintChapter.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   createChapter: typeof createChapter;
   crons: typeof crons;
   dashboard: typeof dashboard;
+  generateAudio: typeof generateAudio;
   http: typeof http;
   migrations: typeof migrations;
   mintChapter: typeof mintChapter;
