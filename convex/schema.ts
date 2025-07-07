@@ -71,8 +71,31 @@ const applicationTables = {
     markdownCid: v.string(),
     draftMd: v.optional(v.string()),   // live draft while editing
     bodyMd: v.optional(v.string()),    // final Markdown after mint
+    audioSegments: v.optional(v.array(v.object({
+      text: v.string(),
+      audioUrl: v.string(),
+      characterId: v.optional(v.string()),
+      startIndex: v.number(),
+      endIndex: v.number()
+    }))),
+    audioGenerationCount: v.optional(v.number()), // Track usage against 10 limit
   }).index("by_series", ["series"])
     .index("by_series_and_index", ["series", "index"]),
+
+  characterVoices: defineTable({
+    userId: v.id("appUsers"),
+    name: v.string(),
+    openaiVoiceId: v.union(
+      v.literal("alloy"),
+      v.literal("echo"), 
+      v.literal("fable"),
+      v.literal("onyx"),
+      v.literal("nova"),
+      v.literal("shimmer")
+    ),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
 
   drafts: defineTable({
     chapter: v.id("chapters"),        // FK

@@ -132,7 +132,84 @@ export const publishChapter = mutation({
     return { success: true };
   }
 });
+export const saveCharacterVoice = mutation({
+  args: {
+    sessionId: v.id("walletSessions"),
+    name: v.string(),
+    openaiVoiceId: v.union(
+      v.literal("alloy"),
+      v.literal("echo"), 
+      v.literal("fable"),
+      v.literal("onyx"),
+      v.literal("nova"),
+      v.literal("shimmer")
+    ),
+    description: v.optional(v.string()),
+    characterId: v.optional(v.id("characterVoices")) // For updates
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.runQuery(api.queries.walletSessionById, { sessionId: args.sessionId });
+    if (!session || session.expiresAt < Date.now()) {
+      throw new Error("Must be logged in to save character voice");
+    }
+    
+    const appUser = await ctx.runQuery(api.queries.appUserByWalletAddress, { walletAddress: session.walletAddress });
+    if (!appUser) {
+      throw new Error("User not found");
+    }
 
+    if (args.characterId) {
+      // Update existing character
+      const existing = await ctx.db.get(args.characterId);
+      if (!existing || existing.userId !== appUser._id) {
+        throw new Error("Character not found or not owned by user");
+      }
+      
+      await ctx.db.patch(args.characterId, {
+        name: args.name,
+        openaiVoiceId: args.openaiVoiceId,
+        description: args.description
+      });
+      
+      return args.characterId;
+    } else {
+      // Create new character
+      return await ctx.db.insert("characterVoices", {
+        userId: appUser._id,
+        name: args.name,
+        openaiVoiceId: args.openaiVoiceId,
+        description: args.description,
+        createdAt: Date.now()
+      });
+    }
+  }
+});
+
+export const deleteCharacterVoice = mutation({
+  args: {
+    sessionId: v.id("walletSessions"),
+    characterId: v.id("characterVoices")
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.runQuery(api.queries.walletSessionById, { sessionId: args.sessionId });
+    if (!session || session.expiresAt < Date.now()) {
+      throw new Error("Must be logged in to delete character voice");
+    }
+    
+    const appUser = await ctx.runQuery(api.queries.appUserByWalletAddress, { walletAddress: session.walletAddress });
+    if (!appUser) {
+      throw new Error("User not found");
+    }
+
+    const character = await ctx.db.get(args.characterId);
+    if (!character || character.userId !== appUser._id) {
+      throw new Error("Character not found or not owned by user");
+    }
+    
+    await ctx.db.delete(args.characterId);
+    return { success: true };
+  }
+});
 
 export const recordPendingTx = mutation({
   args: {
@@ -245,6 +322,27 @@ export const updateChapterAfterMint = mutation({
       supply: args.supply,
       remaining: args.remaining,
       status: args.status
+    });
+    return { success: true };
+  }
+});
+
+export const updateChapterAudioSegments = mutation({
+  args: {
+    chapterId: v.id("chapters"),
+    audioSegments: v.array(v.object({
+      text: v.string(),
+      audioUrl: v.string(),
+      characterId: v.optional(v.string()),
+      startIndex: v.number(),
+      endIndex: v.number()
+    })),
+    audioGenerationCount: v.number()
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.chapterId, {
+      audioSegments: args.audioSegments,
+      audioGenerationCount: args.audioGenerationCount
     });
     return { success: true };
   }

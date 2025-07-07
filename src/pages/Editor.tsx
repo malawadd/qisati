@@ -24,6 +24,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import { createLowlight } from 'lowlight';
+import { CharacterDialogue } from '../tiptap-extensions/CharacterDialogueExtension';
 
 const lowlight = createLowlight();
 import { useMutation, useQuery, useAction } from 'convex/react';
@@ -37,6 +38,9 @@ import NavigatorPane from '../components/editor/NavigatorPane';
 import MintSidebar from '../components/MintSidebar';
 import { useWalletAuth } from '@/providers/WalletAuthProvider';
 import SeriesSettingsPane from '@/components/editor/SeriesSettingsPane';
+import CharacterVoiceSettings from '@/components/editor/CharacterVoiceSettings';
+import DialogueToolbar from '@/components/editor/DialogueToolbar';
+import AudioGenerationPanel from '@/components/editor/AudioGenerationPanel';
 
 export default function Editor() {
   const { user, isGuest, signOut, sessionId } = useWalletAuth();
@@ -44,7 +48,7 @@ export default function Editor() {
   const id = path.split('/').pop() || '';
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'chapter' | 'settings'>('chapter');
+  const [activeTab, setActiveTab] = useState<'chapter' | 'settings' | 'audio'>('chapter');
   
   const chapter = useQuery(api.queries.chapterById, { id: id as any });
   const draft = useQuery(api.queries.draftByChapter, { chapterId: id as any });
@@ -144,6 +148,11 @@ export default function Editor() {
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
+      }),
+      CharacterDialogue.configure({
+        HTMLAttributes: {
+          class: 'character-dialogue',
+        },
       }),
       Placeholder.configure({
         placeholder: 'Start writing your epic chapter...',
@@ -256,6 +265,11 @@ export default function Editor() {
                       onClick={() => setActiveTab('settings')}
                       label="Settings"
                     />
+                    <TabButton
+                      active={activeTab === 'audio'}
+                      onClick={() => setActiveTab('audio')}
+                      label="Audio"
+                    />
                   </div>
                 </div>
                 <div className="text-sm text-gray-600">
@@ -273,7 +287,10 @@ export default function Editor() {
             {/* Tab Content */}
             {activeTab === 'chapter' ? (
               <>
-                <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+                <div className="border-b-4 border-black p-4 flex items-center justify-between">
+                  <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+                  <DialogueToolbar editor={editor} sessionId={sessionId} />
+                </div>
                 <div className="flex-1 p-6 overflow-y-auto relative">
                   <EditorContent 
                     editor={editor} 
@@ -288,6 +305,17 @@ export default function Editor() {
                 chapters={chapters}
                 sessionId={sessionId}
               />
+            ) : activeTab === 'audio' ? (
+              <div className="flex-1 p-6 overflow-y-auto">
+                <div className="max-w-4xl mx-auto space-y-8">
+                  <CharacterVoiceSettings sessionId={sessionId} />
+                  <AudioGenerationPanel 
+                    editor={editor}
+                    chapterId={id as any}
+                    sessionId={sessionId}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -316,7 +344,7 @@ function TabButton({ active, onClick, label }: { active: boolean, onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`neo bg-gray-100 px-3 py-1 text-sm font-bold text-black  transition-colors ${
+      className={`neo px-3 py-1 text-sm font-bold transition-colors ${
         active ? 'bg-primary text-white' : 'bg-gray-100 text-black hover:bg-gray-200'
       }`}
     >

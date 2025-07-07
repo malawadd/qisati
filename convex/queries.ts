@@ -231,3 +231,28 @@ export const appUserByWalletAddress = query({
       .first();
   },
 });
+
+export const getCharacterVoicesByUser = query({
+  args: { sessionId: v.id("walletSessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.expiresAt < Date.now()) {
+      return [];
+    }
+    
+    const appUser = await ctx.db
+      .query("appUsers")
+      .withIndex("by_wallet_address", (q) => q.eq("walletAddress", session.walletAddress))
+      .first();
+    
+    if (!appUser) {
+      return [];
+    }
+    
+    return await ctx.db
+      .query("characterVoices")
+      .withIndex("by_user", (q) => q.eq("userId", appUser._id))
+      .order("desc")
+      .collect();
+  }
+});
