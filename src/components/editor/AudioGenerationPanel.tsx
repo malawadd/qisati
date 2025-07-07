@@ -170,7 +170,10 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
       {/* Actions */}
       <div className="flex gap-3">
         <PrimaryButton
+          onClick={() => {
             setShowAudioPlayer(true);
+          }}
+          disabled={isGenerating}
           className="flex-1"
         >
           {isGenerating ? 'Generating Audio...' : 'Generate Audio'}
@@ -178,7 +181,6 @@ export default function AudioGenerationPanel({ editor, chapterId, sessionId }: A
         
         {chapter?.audioSegments && chapter.audioSegments.length > 0 ? (
           <GhostButton
-            onClick={() => {
             onClick={() => setShowAudioPlayer(true)}
           >
             Preview Audio
