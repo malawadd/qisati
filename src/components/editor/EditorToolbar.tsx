@@ -57,7 +57,7 @@ export default function EditorToolbar({ editor, onImageUpload }: EditorToolbarPr
   const colors = ['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
 
   return (
-    <div className="flex items-center gap-2 p-4 border-b-4 border-black bg-gray-50">
+    <div className="flex items-center gap-2 p-4 border-b-4 border-black bg-gray-50   ">
       {/* Formatting Group */}
       <div className="flex gap-1 mr-4">
         <ToolbarButton
@@ -245,7 +245,7 @@ export default function EditorToolbar({ editor, onImageUpload }: EditorToolbarPr
       </div>
 
       {/* History Group */}
-      <div className="flex gap-1">
+      {/* <div className="flex gap-1">
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           title="Undo"
@@ -258,7 +258,7 @@ export default function EditorToolbar({ editor, onImageUpload }: EditorToolbarPr
         >
           ↷
         </ToolbarButton>
-      </div>
+      </div> */}
     </div>
   );
 }

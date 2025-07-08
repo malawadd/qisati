@@ -233,7 +233,7 @@ export default function Editor() {
       <NavBar />
       <div className="grid-bg min-h-screen flex">
         {/* Navigator Pane - Now 1/5 width */}
-        <NavigatorPane
+        <NavigatorPane 
           seriesId={series._id}
           chapters={chapters}
           currentChapterId={chapter._id}
@@ -242,7 +242,7 @@ export default function Editor() {
         />
         
         {/* Main Content - Now 3/5 width */}
-        <div className="flex-1 p-8 pr-4">
+        <div className="flex-1 min-w-0 overflow-x-hidden p-8 pr-4">
           <div className="neo bg-white h-full flex flex-col">
             {/* Header with Tabs */}
             <div className="border-b-4 border-black p-4">
@@ -288,10 +288,12 @@ export default function Editor() {
             {/* Tab Content */}
             {activeTab === 'chapter' ? (
   <>
-    <div className="border-b-4 border-black p-4 flex items-center justify-between">
+    <div className="border-b-4 border-black p-4 flex items-center justify-between ">
       <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
       <DialogueToolbar editor={editor} sessionId={sessionId} />
     </div>
+    
+    
     <div className="flex-1 p-6 overflow-y-auto relative">
       <EditorContent 
         editor={editor} 

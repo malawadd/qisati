@@ -105,7 +105,7 @@ export default function NavigatorPane({ seriesId, currentChapterId, onChapterSel
   }
 
   return (
-    <div className="w-80 shrink-0 p-4 border-r-4 border-black bg-white">
+    <div className="w-80 shrink-0 p-4 border-r-4 border-black bg-white w-1/5">
       <div className="flex flex-col h-full">
         <h2 className="font-bold mb-4 text-lg">Chapters</h2>
         
