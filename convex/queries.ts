@@ -4,25 +4,54 @@ import { v } from "convex/values";
 export const homeStats = query({
   args: {},
   handler: async (ctx) => {
-    const metrics = await ctx.db.query("metrics").first();
-    if (!metrics) {
-      return {
-        stories: "0",
-        authors: "0", 
-        collectors: "0",
-        volume: "$0"
-      };
-    }
+    // Get total number of series (stories)
+    const allSeries = await ctx.db.query("series").collect();
+    const totalSeries = allSeries.length;
     
-    const userCount = await ctx.db.query("appUsers").collect();
+    // Get total number of authors
+    const allUsers = await ctx.db.query("appUsers").collect();
+    const totalAuthors = allUsers.length;
+    
+    // Calculate total volume from live chapters
+    const liveChapters = await ctx.db
+      .query("chapters")
+      .filter((q) => q.eq(q.field("status"), "live"))
+      .collect();
+    
+    const totalEthEarned = liveChapters.reduce((sum, chapter) => {
+      const sold = chapter.supply - chapter.remaining;
+      return sum + (chapter.priceEth * sold);
+    }, 0);
+    
+    // TODO: Calculate actual collector count from on-chain data
+    const estimatedCollectors = Math.floor(totalEthEarned * 15); // Rough estimate
+    
     return {
-      stories: `${(metrics.totalSeries / 1000).toFixed(1)}K`,
-      authors: `${(userCount.length / 1000).toFixed(1)}K`,
-      collectors: "45K", // TODO: calculate from on-chain data
-      volume: `$${metrics.totalEthEarned}M`
+      stories: formatCount(totalSeries),
+      authors: formatCount(totalAuthors),
+      collectors: formatCount(estimatedCollectors),
+      volume: formatEth(totalEthEarned)
     };
   }
 });
+
+// Helper function to format counts
+function formatCount(count: number): string {
+  if (count === 0) return "0";
+  if (count < 1000) return count.toString();
+  if (count < 1000000) return `${(count / 1000).toFixed(1)}K`;
+  return `${(count / 1000000).toFixed(1)}M`;
+}
+
+// Helper function to format ETH amounts
+function formatEth(ethAmount: number): string {
+  if (ethAmount === 0) return "$0";
+  if (ethAmount < 0.001) return "<$0.001";
+  if (ethAmount < 1) return `$${ethAmount.toFixed(3)}`;
+  if (ethAmount < 1000) return `$${ethAmount.toFixed(2)}`;
+  if (ethAmount < 1000000) return `$${(ethAmount / 1000).toFixed(1)}K`;
+  return `$${(ethAmount / 1000000).toFixed(1)}M`;
+}
 
 export const exploreFeed = query({
   args: { 
@@ -46,6 +75,11 @@ export const exploreFeed = query({
     } else {
       allSeries = await ctx.db.query("series").collect();
     }
+    
+    // Filter out series with default/empty contract addresses
+    allSeries = allSeries.filter(series => 
+      series.contract && series.contract !== "0x0000000000000000000000000000000000000000"
+    );
     
     // Filter by search term if specified
     let filteredSeries = allSeries;
