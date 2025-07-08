@@ -57,7 +57,8 @@ export const exploreFeed = query({
   args: { 
     page: v.optional(v.number()),
     category: v.optional(v.string()),
-    search: v.optional(v.string())
+    search: v.optional(v.string()),
+    includeNoContract: v.optional(v.boolean())
   },
   handler: async (ctx, args) => {
     const page = args.page || 1;
@@ -76,10 +77,12 @@ export const exploreFeed = query({
       allSeries = await ctx.db.query("series").collect();
     }
     
-    // Filter out series with default/empty contract addresses
-    allSeries = allSeries.filter(series => 
-      series.contract && series.contract !== "0x0000000000000000000000000000000000000000"
-    );
+    // Filter out series with default/empty contract addresses unless includeNoContract is true
+    if (!args.includeNoContract) {
+      allSeries = allSeries.filter(series => 
+        series.contract && series.contract !== "0x0000000000000000000000000000000000000000"
+      );
+    }
     
     // Filter by search term if specified
     let filteredSeries = allSeries;

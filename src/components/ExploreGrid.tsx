@@ -11,7 +11,8 @@ export function ExploreGrid() {
   const stories = useQuery(api.queries.exploreFeed, { 
     page: 1,
     category: selectedGenre,
-    search: searchTerm
+    search: searchTerm,
+    includeNoContract: true
   });
 
   return (
