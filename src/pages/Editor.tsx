@@ -42,6 +42,7 @@ import SeriesSettingsPane from '@/components/editor/SeriesSettingsPane';
 import CharacterVoiceSettings from '@/components/editor/CharacterVoiceSettings';
 import DialogueToolbar from '@/components/editor/DialogueToolbar';
 import AudioGenerationPanel from '@/components/editor/AudioGenerationPanel';
+import FloatingMintButton from '@/components/editor/FloatingMintButton';
 
 export default function Editor() {
   const { user, isGuest, signOut, sessionId } = useWalletAuth();
@@ -56,7 +57,6 @@ export default function Editor() {
   const series = useQuery(api.queries.seriesById, chapter ? { id: chapter.series } : "skip");
   const chapters = useQuery(api.queries.chaptersForSeries, series ? { seriesId: series._id } : "skip");
   const saveDraft = useMutation(api.mutations.saveDraftMd);
-  const uploadImage = useAction(api.uploadImage.uploadImageToIPFS);
 
   // Debounced save function
   const debouncedSave = useCallback(
@@ -242,7 +242,7 @@ export default function Editor() {
         />
         
         {/* Main Content - Now 3/5 width */}
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-8 pr-4">
           <div className="neo bg-white h-full flex flex-col">
             {/* Header with Tabs */}
             <div className="border-b-4 border-black p-4">
@@ -322,8 +322,8 @@ export default function Editor() {
           </div>
         </div>
         
-        {/* Mint Sidebar - Now 1/5 width */}
-        <MintSidebar chapterId={id} editor={editor} sessionId={sessionId} />
+        {/* Floating Mint Button */}
+        <FloatingMintButton chapterId={id as any} sessionId={sessionId} />
         <WordCountHUD editor={editor} />
       </div>
     </>
