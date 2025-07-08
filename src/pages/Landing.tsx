@@ -7,6 +7,7 @@ import { StoryCard } from '../components/StoryCard';
 import { NewChapterModal } from '../components/NewChapterModal';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { FanficDragonIllustration } from '@/components/FanficIllustration';
 
 export function Landing() {
   const [showNewChapterModal, setShowNewChapterModal] = useState(false);
@@ -50,7 +51,7 @@ export function Landing() {
             </div>
           </div>
           <div className="neo bg-primary h-96 flex items-center justify-center">
-            <span className="text-white font-bold text-2xl">Illustration Placeholder</span>
+            <FanficDragonIllustration/>
           </div>
         </div>
       </section>
@@ -71,7 +72,7 @@ export function Landing() {
       <section className="px-8 pb-16">
         <h2 className="text-3xl font-bold text-black mb-8 text-center">Featured Stories</h2>
         <div className="flex gap-6 justify-center overflow-x-auto pb-4">
-          {stories?.map(story => (
+          {stories?.map((story) => (
             <StoryCard 
               key={story.id} 
               {...story} 

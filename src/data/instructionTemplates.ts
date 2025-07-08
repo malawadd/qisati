@@ -141,7 +141,9 @@ Emotion: Joy, excitement, and sincere friendship, creating an atmosphere of shar
 Pronunciation: Clear and expressive, with natural inflections that convey genuine emotion.
 
 Delivery: Speaks with the warmth of a trusted friend, celebrating successes and offering encouragement.`
-  }
+  },
+
+  
 ];
 
 export const getTemplateById = (id: string): InstructionTemplate | undefined => {
